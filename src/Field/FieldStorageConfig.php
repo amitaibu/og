@@ -2,20 +2,22 @@
 
 namespace Drupal\og\Field;
 
-use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
-use Drupal\Core\Config\Entity\ConfigEntityInterface;
-use Drupal\Core\Config\Entity\ThirdPartySettingsInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\field\Entity\FieldStorageConfig as BaseFieldStorageConfig;
 use Drupal\field\FieldStorageConfigInterface;
 
 /**
  * Overrides the FieldConfigStorage definition class to set custom storage.
  */
 class FieldStorageConfig implements FieldStorageConfigInterface {
+
+  /**
+   * The decorated field storage config instance.
+   *
+   * @var \Drupal\field\FieldStorageConfigInterface
+   */
+  protected $decorated;
 
   /**
    * Constructs a FieldStorageConfig decorator object.
