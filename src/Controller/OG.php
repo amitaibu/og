@@ -6,6 +6,7 @@ use Drupal\Core\Entity\ContentEntityType;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Entity\Entity;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\og\Entity\OgMembership;
@@ -216,5 +217,89 @@ class OG {
    */
   public static function MembershipDefault() {
     return array('type' => 'og_membership_type_default');
+  }
+
+  /**
+   * Get the groups an entity is associated with.
+   *
+   * @param $entity_type
+   *   The entity type. Defaults to 'user'
+   * @param $entity
+   *   (optional) The entity object or entity ID. If empty, and $entity_type is
+   *   "user", the current user will be used.
+   * @param $states
+   *   (optional) Array with the state to return. Defaults to active.
+   * @param $field_name
+   *   (optional) The field name associated with the group.
+   *
+   * @return array
+   *  An array with the group's entity type as the key, and array - keyed by
+   *  the OG membership ID and the group ID as the value. If nothing found,
+   *  then an empty array.
+   */
+  public static function getEntityGroups($entity_type = 'user', $entity = NULL, $states = array(OG_STATE_ACTIVE), $field_name = NULL) {
+    $cache = &drupal_static(__FUNCTION__, array());
+
+    if ($entity_type == 'user' && empty($entity)) {
+      $account = \Drupal::currentUser()->getAccount();
+      $entity = $account->id();
+    }
+    if ($entity instanceof AccountInterface) {
+      // Get the entity ID.
+      $id = $entity->id();
+    }
+    else {
+      $id = $entity;
+    }
+
+    // Get a string identifier of the states, so we can retrieve it from cache.
+    if ($states) {
+      sort($states);
+      $state_identifier = implode(':', $states);
+    }
+    else {
+      $state_identifier = FALSE;
+    }
+
+    $identifier = array(
+      $entity_type,
+      $id,
+      $state_identifier,
+      $field_name,
+    );
+
+    $identifier = implode(':', $identifier);
+
+    if (isset($cache[$identifier])) {
+      // Return cached values.
+      return $cache[$identifier];
+    }
+
+    $cache[$identifier] = array();
+    $query = \Drupal::entityQuery('og_membership')
+      ->condition('entity_type', $entity_type)
+      ->condition('etid', $id);
+
+    if ($states) {
+      $query->condition('state', $states, 'IN');
+    }
+
+    if ($field_name) {
+      $query->condition('field_name', $field_name);
+    }
+
+    $results = $query
+      ->execute();
+
+    /** @var OgMembership[] $memberships */
+    $memberships = \Drupal::entityManager()
+      ->getStorage('og_membership')
+      ->loadMultiple($results);
+
+    foreach ($memberships as $membership) {
+      $cache[$identifier][$membership->getGroupType()][$membership->id()] = $membership->getGroup();
+    }
+
+    return $cache[$identifier];
   }
 }

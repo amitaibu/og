@@ -4,6 +4,7 @@
  * @file
  * Enable users to create and manage groups with roles and permissions.
  */
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\og\Controller\OG;
@@ -95,6 +96,41 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
 }
 
 /**
+ * Implements hook_entity_insert().
+ */
+function og_entity_insert(ContentEntityInterface $entity) {
+  if (!OG::IsGroup($entity)) {
+    return;
+  }
+
+  if (!empty($entity->hasField('uid'))) {
+    // Subscribe the group manager.
+    $membership = OgMembership::create(array('type' => OG_MEMBERSHIP_TYPE_DEFAULT));
+    $membership
+      ->setEntityId($entity->get('uid')->offsetGet(0)->getValue()['target_id'])
+      ->setEntityType($entity->getEntityTypeId())
+      ->setGid($entity->id())
+      ->setGroupType('user')
+      // todo: get the real name of the field.
+      ->setFieldName(OG_AUDIENCE_FIELD)
+      ->save();
+
+    // Assign roles to group manager.
+    // todo: handle when we will start with permission.
+//    $name = 'og_group_manager_default_rids_' . $entity_type . '_' . $bundle;
+//    if ($rids = variable_get($name)) {
+//      foreach ($rids as $rid) {
+//        og_role_grant($entity_type, $id, $entity->uid, $rid);
+//      }
+//    }
+  }
+//  if (!og_is_group_default_access($entity_type, $entity)) {
+//    // Override default roles.
+//    og_roles_override($entity_type, $bundle, $id);
+//  }
+}
+
+/**
  * Drupal 7 part.
  */
 
@@ -119,20 +155,11 @@ function _og_modules_uninstalled($modules) {
   og_permissions_delete_by_module($modules);
 }
 
-/**
- * Implements hook_permission().
- */
-function _og_permission() {
-  return array(
-    'administer group' =>  array(
-      'title' => t('Administer Organic groups permissions'),
-      'description' => t('Administer all groups and permissions.'),
-    ),
-  );
-}
 
 /**
  * Implements hook_og_permission().
+ *
+ * todo: Set as a yml service.
  */
 function _og_og_permission() {
   // Generate standard node permissions for all applicable node types.
@@ -510,31 +537,6 @@ function _og_form_group_manager_validate($form, &$form_state) {
   }
 
   form_error($form, t("Can't save entity as group, because user @name can't be subscribed to group and become a manager.", array('@name' => format_username($account))));
-}
-
-/**
- * Implements hook_entity_insert().
- */
-function _og_entity_insert($entity, $entity_type) {
-  if (!og_is_group($entity_type, $entity)) {
-    return;
-  }
-  list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
-  if (!empty($entity->uid)) {
-    // Subscribe the group manager.
-    og_group($entity_type, $id, array('entity' => $entity->uid));
-    // Assign roles to group manager.
-    $name = 'og_group_manager_default_rids_' . $entity_type . '_' . $bundle;
-    if ($rids = variable_get($name)) {
-      foreach ($rids as $rid) {
-        og_role_grant($entity_type, $id, $entity->uid, $rid);
-      }
-    }
-  }
-  if (!og_is_group_default_access($entity_type, $entity)) {
-    // Override default roles.
-    og_roles_override($entity_type, $bundle, $id);
-  }
 }
 
 /**
