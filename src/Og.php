@@ -93,8 +93,6 @@ class Og {
    *  then an empty array.
    */
   public static function getEntityGroups($entity_type = 'user', $entity_id = NULL, $states = [OG_STATE_ACTIVE], $field_name = NULL) {
-    $cache = &drupal_static(__FUNCTION__, array());
-
     if ($entity_type == 'user' && empty($entity_id)) {
       $account = \Drupal::currentUser()->getAccount();
       $entity_id = $account->id();
