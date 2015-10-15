@@ -201,10 +201,10 @@ class Og {
   /**
    * Invalidate cache.
    *
-   * @param $gids
+   * @param $group_ids
    *   Array with group IDs that their cache should be invalidated.
    */
-  public static function invalidateCache($gids = array()) {
+  public static function invalidateCache($group_ids = array()) {
     // @todo We should not be using drupal_static() review and remove.
     // Reset static cache.
     $caches = array(
@@ -232,7 +232,7 @@ class Og {
     \Drupal::entityManager()->clearCachedFieldDefinitions();
 
     // Let other OG modules know we invalidate cache.
-    \Drupal::moduleHandler()->invokeAll('og_invalidate_cache', $gids);
+    \Drupal::moduleHandler()->invokeAll('og_invalidate_cache', $group_ids);
   }
 
   /**
