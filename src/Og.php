@@ -79,9 +79,9 @@ class Og {
    * Gets the groups an entity is associated with.
    *
    * @param $entity_type
-   *   The entity type. Defaults to 'user'
+   *   The entity type.
    * @param $entity_id
-   *   (optional) The entity ID.
+   *   The entity ID.
    * @param $states
    *   (optional) Array with the state to return. Defaults to active.
    * @param $field_name
@@ -92,12 +92,7 @@ class Og {
    *  the OG membership ID and the group ID as the value. If nothing found,
    *  then an empty array.
    */
-  public static function getEntityGroups($entity_type = 'user', $entity_id = NULL, $states = [OG_STATE_ACTIVE], $field_name = NULL) {
-    if ($entity_type == 'user' && empty($entity_id)) {
-      $account = \Drupal::currentUser()->getAccount();
-      $entity_id = $account->id();
-    }
-
+  public static function getEntityGroups($entity_type, $entity_id, $states = [OG_STATE_ACTIVE], $field_name = NULL) {
     // Get a string identifier of the states, so we can retrieve it from cache.
     if ($states) {
       sort($states);
@@ -135,7 +130,7 @@ class Og {
 
     $results = $query->execute();
 
-    /** @var OgMembership[] $memberships */
+    /** @var \Drupal\og\Entity\OgMembership[] $memberships */
     $memberships = \Drupal::entityManager()
       ->getStorage('og_membership')
       ->loadMultiple($results);
