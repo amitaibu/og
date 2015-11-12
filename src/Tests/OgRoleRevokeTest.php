@@ -9,17 +9,22 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test the revocation of group roles.
+ * Tests the revocation of group roles.
  *
  * @group og
  */
 class OgRoleRevokeTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
+  /**
+   * Tests the revocation of group roles.
+   */
   public function testOgRoleRevoke()  {
     // Create a user.
     $user1 = $this->drupalCreateUser();

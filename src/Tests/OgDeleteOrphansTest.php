@@ -9,7 +9,7 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Testing for deleting orphans group content.
+ * Tests for deleting orphans group content.
  *
  * @group og
  */
@@ -19,7 +19,9 @@ class OgDeleteOrphansTest extends WebTestBase {
   protected $node_type;
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og', 'og_test'];
 
@@ -27,7 +29,6 @@ class OgDeleteOrphansTest extends WebTestBase {
    * {@inheritdoc}
    */
   public function setUp() {
-
     // Create a group content type.
     $group = $this->drupalCreateContentType();
     og_create_field(OG_GROUP_FIELD, 'node', $group->type);
@@ -48,7 +49,7 @@ class OgDeleteOrphansTest extends WebTestBase {
   }
 
   /**
-   * Testing two things:
+   * Tests two things:
    *  When deleting a group, the node of the group will be deleted.
    *  Associated node with the deleted group and another group won't be deleted.
    */
@@ -84,7 +85,7 @@ class OgDeleteOrphansTest extends WebTestBase {
   }
 
   /**
-   * Testing the moving of the node to another group when deleting a group.
+   * Tests the moving of the node to another group when deleting a group.
    */
   function testMoveOrphans() {
     // Creating two groups.

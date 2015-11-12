@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test Group node access. This will test nodes that are groups and group content.
+ * Tests Group node access of nodes that are groups and group content.
  *
  * @group og
  */
 class OgNodeAccessTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -61,8 +63,10 @@ class OgNodeAccessTest extends WebTestBase {
   }
 
   /**
-   * Test strict access permissions for updating group node. A non-member of
-   * a group who has core node access update permission is denied access.
+   * Tests strict access permissions for updating group node.
+   *
+   * A non-member of a group who has core node access update permission is
+   * denied access.
    */
   function testStrictAccessNodeUpdate() {
     // Set Node access strict variable.
@@ -88,7 +92,7 @@ class OgNodeAccessTest extends WebTestBase {
   }
 
   /**
-   * Test access to node create on strict mode.
+   * Tests access to node create on strict mode.
    */
   function testStrictAccessNodeCreate() {
     // Set Node access strict variable.
@@ -134,8 +138,10 @@ class OgNodeAccessTest extends WebTestBase {
   }
 
   /**
-   * Test non-strict access permissions for updating group node. A non-member
-   * of a group who has core node access update permission is allowed access.
+   * Tests non-strict access permissions for updating group node.
+   *
+   * A non-member of a group who has core node access update permission is
+   * allowed access.
    */
   function testNoStrictAccessNodeUpdate() {
     // Set Node access strict variable.
@@ -161,7 +167,7 @@ class OgNodeAccessTest extends WebTestBase {
   }
 
   /**
-   * Test non-strict access permissions for creating group node.
+   * Tests non-strict access permissions for creating group node.
    *
    * A member of a group who has no core node access create permission is
    * allowed access.
@@ -189,8 +195,10 @@ class OgNodeAccessTest extends WebTestBase {
   }
 
   /**
-   * Assert a user cannot assign an existing node to a group they don't
-   * have "create" permissions.
+   * Tests unprivileged users cannot assign existing nodes to groups.
+   *
+   * This should only be possible if the user has "create" permission on the
+   * group.
    */
   function testNodeUpdateAudienceField() {
     // Set Node access strict variable.

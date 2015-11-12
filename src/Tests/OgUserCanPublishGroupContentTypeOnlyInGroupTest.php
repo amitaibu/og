@@ -9,7 +9,7 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Verify that users only with OG permissions can post only inside a group
+ * Verifies that users only with OG permissions can post only inside a group.
  *
  * @group og
  */
@@ -20,7 +20,9 @@ class OgUserCanPublishGroupContentTypeOnlyInGroupTest extends WebTestBase {
   public $group_content;
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -62,8 +64,8 @@ class OgUserCanPublishGroupContentTypeOnlyInGroupTest extends WebTestBase {
   }
 
   /**
-   * Grant to a user the permission to publish a node of a group content and
-   * verify that he can't create a node of that content type outside a group.
+   * Grants to a user the permission to publish a node of a group content and
+   * verifies that he can't create a node of that content type outside a group.
    */
   public function testGroupUserCanPostGroupContentOnlyInGroup() {
     $node_title = $this->randomName();
@@ -105,7 +107,7 @@ class OgUserCanPublishGroupContentTypeOnlyInGroupTest extends WebTestBase {
   }
 
   /**
-   * Verify that non-group user can post group content outside of a group.
+   * Verifies that non-group users can post group content outside of a group.
    */
   public function testNonGroupUserCanPostGroupContentOutsideGroup() {
     $this->drupalLogin($this->site_user);

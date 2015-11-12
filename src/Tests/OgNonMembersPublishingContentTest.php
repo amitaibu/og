@@ -9,7 +9,7 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Testing publishing content in a group for non members users.
+ * Tests publishing content in a group for non members users.
  *
  * @group og
  */
@@ -20,7 +20,9 @@ class OgNonMembersPublishingContentTest extends WebTestBase {
   public $adminUser;
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og', 'entityreference_prepopulate'];
 
@@ -65,8 +67,8 @@ class OgNonMembersPublishingContentTest extends WebTestBase {
   }
 
   /**
-   * Testing the option for non members users to publish content in the group
-   * when the group identifier passed through the URL.
+   * Tests the option for non members users to publish content in the group when
+   * the group identifier is passed through the URL.
    */
   public function testNonMembersPublish() {
     // Login as normal user.

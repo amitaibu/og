@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test Group content handling.
+ * Tests Group content handling.
  *
  * @group og
  */
 class OgGroupAndUngroupTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -34,7 +36,7 @@ class OgGroupAndUngroupTest extends WebTestBase {
   }
 
   /**
-   * Test group and ungroup of content.
+   * Tests grouping and ungrouping of content.
    */
   function testGroupAndUngroup() {
     $user1 = $this->drupalCreateUser();
@@ -207,7 +209,7 @@ class OgGroupAndUngroupTest extends WebTestBase {
   }
 
   /**
-   * Test granting deault role to group manager.
+   * Tests granting default role to group manager.
    */
   function testGroupManagerDefaultRoles() {
     // Get only the admin role.

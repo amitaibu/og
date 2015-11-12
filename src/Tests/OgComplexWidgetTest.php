@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test the complex widget.
+ * Tests the complex widget.
  *
  * @group og
  */
 class OgComplexWidgetTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -24,7 +26,6 @@ class OgComplexWidgetTest extends WebTestBase {
    * {@inheritdoc}
    */
   function setUp() {
-
     // Add OG group field to a the node's "group" bundle.
     $this->drupalCreateContentType(array('type' => 'group'));
     og_create_field(OG_GROUP_FIELD, 'node', 'group');
@@ -37,7 +38,7 @@ class OgComplexWidgetTest extends WebTestBase {
   }
 
   /**
-   * Test "field modes" of the OG reference widget.
+   * Tests "field modes" of the OG reference widget.
    */
   function testFieldModes() {
     $user1 = $this->drupalCreateUser(array('administer group', 'access content', 'create post content'));

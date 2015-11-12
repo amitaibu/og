@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test the OG Behavior Handler.
+ * Tests the OG Behavior Handler.
  *
  * @group og
  */
 class OgBehaviorHandlerTest  extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -37,7 +39,7 @@ class OgBehaviorHandlerTest  extends WebTestBase {
   }
 
   /**
-   * Test piping group association via the group-audience field.
+   * Tests piping group association via the group-audience field.
    */
   function testGroupAudienceField() {
     $user1 = $this->drupalCreateUser();
@@ -68,7 +70,7 @@ class OgBehaviorHandlerTest  extends WebTestBase {
   }
 
   /**
-   * Test skipping OgBehaviorHandler.
+   * Tests skipping OgBehaviorHandler.
    */
   function testGroupAudienceFieldSkipBehavior() {
     $user1 = $this->drupalCreateUser();
@@ -100,7 +102,7 @@ class OgBehaviorHandlerTest  extends WebTestBase {
   }
 
   /**
-   * Test settings the OG membership state via field values, when associating
+   * Tests settings the OG membership state via field values, when associating
    * a new group-content to a group.
    */
   function testSetStateOnInsert() {

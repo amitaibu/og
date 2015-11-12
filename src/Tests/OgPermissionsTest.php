@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test OG permissions.
+ * Tests OG permissions.
  *
  * @group og
  */
 class OgPermissionsTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -34,9 +36,8 @@ class OgPermissionsTest extends WebTestBase {
     og_create_field(OG_AUDIENCE_FIELD, 'node', 'article', $og_field);
   }
 
-
   /**
-   * Verify proper permission changes by og_role_change_permissions().
+   * Verifies proper permission changes by og_role_change_permissions().
    */
   function testOgUserRoleChangePermissions() {
     // Create user.
@@ -85,7 +86,7 @@ class OgPermissionsTest extends WebTestBase {
   }
 
   /**
-   * Assert blocked and pending roles influence the allowed permissions.
+   * Asserts blocked and pending roles influence the allowed permissions.
    */
   function testBlockedAndPendingRoles() {
     // Create user.

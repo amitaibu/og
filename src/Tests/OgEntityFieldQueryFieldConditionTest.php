@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * EntityFieldQuery FieldConditions with multiple group content entity types.
+ * Tests EFQ FieldConditions with multiple group content entity types.
  *
  * @group og
  */
 class OgEntityFieldQueryFieldConditionTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -129,6 +131,9 @@ class OgEntityFieldQueryFieldConditionTest extends WebTestBase {
     $this->group2 = $group2;
   }
 
+  /**
+   * Tests EFQ FieldConditions with multiple group content entity types.
+   */
   function testEntityFieldQueryFieldConditions() {
     // Query for all nodes with a field value of 'red'.
     $query = new EntityFieldQuery();

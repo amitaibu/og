@@ -9,19 +9,21 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test group-audience field access settings.
+ * Tests group-audience field access settings.
  *
  * @group og
  */
 class OgAudienceFieldAccessOverrideTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
   /**
-   * Test auto-attaching group-audience fields to the user entity.
+   * Tests auto-attaching group-audience fields to the user entity.
    */
   function testAutoAttach()  {
     $type1 = $this->drupalCreateContentType();

@@ -9,19 +9,21 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test access operations.
+ * Tests access operations.
  *
  * @group og
  */
 class OgAccessTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
   /**
-   * Verify og_user_access_entity() returns correct value.
+   * Verifies that og_user_access_entity() returns the correct value.
    */
   function testOgAccessEntity() {
     $perm = 'administer group';

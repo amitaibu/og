@@ -9,19 +9,21 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test the Organic groups API and CRUD handling.
+ * Tests the Organic groups API and CRUD handling.
  *
  * @group og
  */
 class OgMetaDataTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
   /**
-   * Test the og_get_entity_groups() API function.
+   * Tests the og_get_entity_groups() API function.
    */
   function testOgMembershipMetaData() {
     // Add OG group field to the entity_test's "main" bundle.

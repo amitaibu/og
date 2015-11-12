@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test for publishing content using a select widget.
+ * Tests publishing content using a select widget.
  *
  * @group og
  */
 class OgSelectAccessibleGroupsValidationTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -55,7 +57,7 @@ class OgSelectAccessibleGroupsValidationTest extends WebTestBase {
   }
 
   /**
-   * Verify that a user can't publish content into group that he isn't a
+   * Verifies that a user can't publish content into a group that he isn't a
    * member of (either admin or not).
    */
   function testAuthenticatedUserCantReferenceToPrivateGroup() {

@@ -9,19 +9,21 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test default field access.
+ * Tests default field access.
  *
  * @group og
  */
 class OgDefaultAccessFieldTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
   /**
-   * Test groups with default access field enabled or disabled.
+   * Tests groups with default access field enabled or disabled.
    */
   function testOgDefaultAccessField() {
     // Create user.

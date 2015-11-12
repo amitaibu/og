@@ -9,14 +9,16 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test queying group-audience fields using entityFieldQuery.
+ * Tests querying group-audience fields using entityFieldQuery.
  *
  * @group og
  */
 class OgEntityFieldQueryTest extends WebTestBase {
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -123,7 +125,7 @@ class OgEntityFieldQueryTest extends WebTestBase {
   }
 
   /**
-   * Test the following query scenarios:
+   * Tests the following query scenarios:
    *
    * - Single group audience.
    * - Multiple group audience.

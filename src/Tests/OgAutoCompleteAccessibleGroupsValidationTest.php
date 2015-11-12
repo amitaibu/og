@@ -9,7 +9,7 @@ namespace Drupal\og\Tests;
 use Drupal\simpletest\WebTestBase;
 
 /**
- * Test for publishing content into group the user is not a member.
+ * Tests publishing of content in a group the user is not a member of.
  *
  * @group og
  */
@@ -24,7 +24,9 @@ class OgAutoCompleteAccessibleGroupsValidationTest extends WebTestBase {
   var $group_member;
 
   /**
-   * {@inheritdoc}
+   * Modules to enable.
+   *
+   * @var array
    */
   public static $modules = ['og'];
 
@@ -63,7 +65,7 @@ class OgAutoCompleteAccessibleGroupsValidationTest extends WebTestBase {
   }
 
   /**
-   * Verify that a user can't publish content into group that he isn't a member.
+   * Verifies users can't publish content into groups they're not a member of.
    */
   function testAuthenticatedUserCantReferenceToPrivateGroup() {
     $this->drupalLogin($this->group_member);
