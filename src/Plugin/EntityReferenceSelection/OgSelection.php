@@ -60,7 +60,7 @@ class OgSelection extends DefaultSelection {
    */
   public function getConfiguration($key = NULL) {
 
-    if (!$key) {
+    if (!isset($key)) {
       return $this->configuration;
     }
 
