@@ -102,17 +102,19 @@ function og_entity_insert(EntityInterface $entity) {
     return;
   }
 
-  if (!empty($entity->hasField('uid'))) {
-    // Subscribe the group manager.
-    $membership = OgMembership::create(array('type' => OG_MEMBERSHIP_TYPE_DEFAULT));
-    $membership
-      ->setEntityId($entity->get('uid')->target_id)
-      ->setEntityType('user')
-      ->setGid($entity->id())
-      ->setGroupType($entity->getEntityTypeId())
-      ->setFieldName($membership->getFieldName())
-      ->save();
+  if (!$entity->hasField('uid')) {
+    return;
   }
+
+  // Subscribe the group manager.
+  $membership = OgMembership::create(array('type' => OG_MEMBERSHIP_TYPE_DEFAULT));
+  $membership
+    ->setEntityId($entity->get('uid')->target_id)
+    ->setEntityType('user')
+    ->setGid($entity->id())
+    ->setGroupType($entity->getEntityTypeId())
+    ->setFieldName($membership->getFieldName())
+    ->save();
 }
 
 /**
