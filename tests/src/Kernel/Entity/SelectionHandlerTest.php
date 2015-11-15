@@ -137,9 +137,8 @@ class SelectionHandlerTest extends KernelTestBase {
     $this->assertEquals($user2_groups, array_keys($groups[$this->groupBundle]));
 
     // Check the other groups.
-    $handler_settings = $this->selectionHandler->getConfiguration('handler_settings');
-    $handler_settings['field_mode'] = 'admin';
-    $this->selectionHandler->setConfiguration('handler_settings', $handler_settings);
+
+    $this->selectionHandler = Og::getSelectionHandler('node', $this->groupContentBundle, OG_AUDIENCE_FIELD, ['handler_settings' => ['field_mode' => 'admin']]);
 
     $groups = $this->selectionHandler->setAccount($this->user1)->getReferenceableEntities();
     $this->assertEquals($user2_groups, array_keys($groups[$this->groupBundle]));

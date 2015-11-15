@@ -68,21 +68,6 @@ class OgSelection extends DefaultSelection {
   }
 
   /**
-   * Set a configuration value.
-   *
-   * @param $key
-   *   The key of the configuration.
-   * @param $value
-   *   The value of the configuration.
-   *
-   * @return $this
-   */
-  public function setConfiguration($key, $value) {
-    $this->configuration[$key] = $value;
-    return $this;
-  }
-
-  /**
    * Get the selection handler of the field.
    *
    * @return DefaultSelection
