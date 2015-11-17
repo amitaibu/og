@@ -153,13 +153,11 @@ class SelectionHandlerTest extends KernelTestBase {
    * @param $amount
    *   The number of groups to create.
    * @param User $user
-   *   The user object which own the groups.
-   * @param Bool $return_ids
-   *   Determine if the method will return the IDs or the group objects.
+   *   The user object which owns the groups.
    *
    * @return ContentEntityBase[]
    */
-  private function createGroups($amount, User $user, $return_ids = TRUE) {
+  protected function createGroups($amount, User $user) {
     $groups = [];
 
     for ($i = 0; $i <= $amount; $i++) {
@@ -170,7 +168,7 @@ class SelectionHandlerTest extends KernelTestBase {
       ]);
       $group->save();
 
-      $groups[] = $return_ids == 'label' ? $group->id() : $group;
+      $groups[] = $group;
     }
 
     return $groups;
