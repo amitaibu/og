@@ -15,6 +15,13 @@ use Drupal\og\Og;
 /**
  * Provide default OG selection handler.
  *
+ * Note that the id is correctly defined as "og:default" and not the other way
+ * around, as seen in most other default selection handler (e.g. "default:node")
+ * as OG's selection handler is a wrapper around those entity specific default
+ * ones. That is, the same selection handler will be returned no matter what is
+ * the target type of the reference field. Internally, it will call the original
+ * selection handler, and use it for building the queries.
+ *
  * @EntityReferenceSelection(
  *   id = "og:default",
  *   label = @Translation("OG selection"),
