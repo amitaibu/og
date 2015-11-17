@@ -168,7 +168,7 @@ class SelectionHandlerTest extends KernelTestBase {
       ]);
       $group->save();
 
-      $groups[] = $group;
+      $groups[] = $group->id();
     }
 
     return $groups;
