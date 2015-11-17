@@ -66,7 +66,6 @@ class OgSelection extends DefaultSelection {
    *   Value of a configuration or all the configurations.
    */
   public function getConfiguration($key = NULL) {
-
     if (!isset($key)) {
       return $this->configuration;
     }
@@ -80,7 +79,7 @@ class OgSelection extends DefaultSelection {
    * @return DefaultSelection
    */
   public function getSelectionHandler() {
-    return \Drupal::service('plugin.manager.entity_reference_selection')->getSelectionHandler($this->configuration['field']);
+    return \Drupal::service('plugin.manager.entity_reference_selection')->getSelectionHandler($this->getConfiguration('field'));
   }
 
   /**
@@ -118,7 +117,9 @@ class OgSelection extends DefaultSelection {
     }
 
     $ids = [];
-    if (isset($this->configuration['handler_settings']['field_mode']) && $this->configuration['handler_settings']['field_mode'] == 'admin') {
+
+
+    if ($this->getConfiguration('is_admin')) {
       // Don't include the groups, the user doesn't have create permission.
       foreach ($user_groups as $delta => $group) {
         $ids[] = $group->id();

@@ -299,22 +299,26 @@ class Og {
    *   The field name.
    * @param array $options
    *   Overriding the default options of the selection handler.
+   * @param bool $is_admin
+   *   Determines if the selection handler should show the "other groups" for an
+   *   admin user.
    *
    * @return OgSelection
    * @throws \Exception
    */
-  public static function getSelectionHandler($entity, $bundle, $field_name, array $options = []) {
+  public static function getSelectionHandler($entity, $bundle, $field_name, $is_admin = FALSE) {
     $field_definition = FieldConfig::loadByName($entity, $bundle, $field_name);
 
     if (!Og::isGroupAudienceField($field_definition)) {
       throw new \Exception(new FormattableMarkup('The field @name is not an audience field.', ['@name' => $field_name]));
     }
 
-    $default_options = $options + [
+    $default_options = [
       'target_type' => $field_definition->getFieldStorageDefinition()->getSetting('target_type'),
       'field' => $field_definition,
       'handler' => $field_definition->getSetting('handler'),
       'handler_settings' => $field_definition->getSetting('handler_settings') ?: array(),
+      'is_admin' => $is_admin,
     ];
 
     return \Drupal::service('plugin.manager.entity_reference_selection')->createInstance('og:default', $default_options);
