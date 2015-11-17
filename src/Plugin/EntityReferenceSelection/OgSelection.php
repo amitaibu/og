@@ -152,7 +152,7 @@ class OgSelection extends DefaultSelection {
    *
    * @return ContentEntityInterface[]
    */
-  private function getUserGroups() {
+  protected function getUserGroups() {
     $other_groups = Og::getEntityGroups('user', $this->getAccount()->id());
     return $other_groups[$this->configuration['target_type']];
   }
