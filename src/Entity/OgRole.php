@@ -6,17 +6,11 @@
 namespace Drupal\og\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 
 /**
- * todo: Find a way to attach the roles to group:
- *  - UUID?
- *  - Service?
- *
- * Convert into
- *
- *
  * @ContentEntityType(
  *   id = "og_role",
  *   label = @Translation("OG role"),
@@ -70,7 +64,7 @@ class OgRole extends ContentEntityBase {
    * @return $this
    */
   public function setGroupType($groupType) {
-    $this->set('groupType', $groupType);
+    $this->set('group_type', $groupType);
     return $this;
   }
 
@@ -160,6 +154,11 @@ class OgRole extends ContentEntityBase {
       ->setLabel(t('Role ID'))
       ->setDescription(t('Primary Key: Unique role ID.'));
 
+    $fields['name'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Name'))
+      ->setDescription(t('Unique role name per group.'));
+
+    // todo: set gid, group_type and group_bundle as null.
     $fields['gid'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Group ID'))
       ->setDescription(t("The group's unique ID."));
@@ -172,10 +171,78 @@ class OgRole extends ContentEntityBase {
       ->setLabel(t('Group bundle'))
       ->setDescription(t("The group's bundle name."));
 
-    $fields['name'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Name'))
-      ->setDescription(t('Unique role name per group.'));
-
     return $fields;
   }
+
+  /**
+   * Set group info from object.
+   *
+   * @param ContentEntityInterface $entity
+   *   The entity object.
+   *
+   * @return $this
+   */
+  public function setGroupEntity(ContentEntityInterface $entity) {
+    $this
+      ->setGid($entity->id())
+      ->setGroupType($entity->getEntityTypeId())
+      ->setGroupBundle($entity->bundle());
+
+    return $this;
+  }
+
+  /**
+   * Query role IDS.
+   *
+   * @param $name
+   *   The name of the role.
+   * @param Array $fields
+   *   Additional fields to the query.
+   *
+   * @return array
+   *   List of role IDs.
+   */
+  public static function queryRoleIds($name, $fields = []) {
+    $query = \Drupal::entityQuery('og_role')
+      ->condition('name', $name, '=');
+
+    foreach ($fields as $field => $info) {
+      if (is_array($info)) {
+        $value = $info['value'];
+        $operator = $info['operator'];
+      }
+      else {
+        $value = $info;
+        $operator = '=';
+      }
+
+      $query->condition($field, $value, $operator);
+    }
+
+    return $query->execute();
+  }
+
+  /**
+   * Loading OG role by name.
+   *
+   * @param $name
+   *   The name of the role.
+   * @param Array $fields
+   *   Additional fields to the query.
+   *
+   * @return OgRole[]
+   *   List of role IDs.
+   */
+  public static function loadByName($name, $fields = []) {
+    $rids = self::queryRoleIds($name, $fields);
+
+    if (empty($rids)) {
+      return NULL;
+    }
+
+    $storage = \Drupal::entityTypeManager()->getStorage('og_role');
+
+    return count($rids) == 1 ? $storage->load(reset($rids)) : $storage->loadMultiple($rids);
+  }
+
 }
