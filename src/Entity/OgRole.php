@@ -9,6 +9,7 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\og\Og;
 
 /**
  * @ContentEntityType(
@@ -159,17 +160,25 @@ class OgRole extends ContentEntityBase {
       ->setDescription(t('Unique role name per group.'));
 
     // todo: set gid, group_type and group_bundle as null.
+//    <aspilicious_home>     $fields['pass'] = BaseFieldDefinition::create('password')
+//      <aspilicious_home>       ->setLabel(t('Password'))
+//    <aspilicious_home>       ->setDescription(t('The password of this user (hashed).'))
+//    <aspilicious_home>       ->addConstraint('ProtectedUserField');
+
     $fields['gid'] = BaseFieldDefinition::create('integer')
       ->setLabel(t('Group ID'))
-      ->setDescription(t("The group's unique ID."));
+      ->setDescription(t("The group's unique ID."))
+      ->setRequired(FALSE);
 
     $fields['group_type'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Group type'))
-      ->setDescription(t("The group's entity type."));
+      ->setDescription(t("The group's entity type."))
+      ->setRequired(FALSE);
 
     $fields['group_bundle'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Group bundle'))
-      ->setDescription(t("The group's bundle name."));
+      ->setDescription(t("The group's bundle name."))
+      ->setRequired(FALSE);
 
     return $fields;
   }
@@ -203,23 +212,7 @@ class OgRole extends ContentEntityBase {
    *   List of role IDs.
    */
   public static function queryRoleIds($name, $fields = []) {
-    $query = \Drupal::entityQuery('og_role')
-      ->condition('name', $name, '=');
-
-    foreach ($fields as $field => $info) {
-      if (is_array($info)) {
-        $value = $info['value'];
-        $operator = $info['operator'];
-      }
-      else {
-        $value = $info;
-        $operator = '=';
-      }
-
-      $query->condition($field, $value, $operator);
-    }
-
-    return $query->execute();
+    return Og::permissionQueryConstructor('og_role', 'name', $name, $fields);
   }
 
   /**
@@ -230,19 +223,11 @@ class OgRole extends ContentEntityBase {
    * @param Array $fields
    *   Additional fields to the query.
    *
-   * @return OgRole[]
+   * @return OgRole|OgRole[]
    *   List of role IDs.
    */
   public static function loadByName($name, $fields = []) {
-    $rids = self::queryRoleIds($name, $fields);
-
-    if (empty($rids)) {
-      return NULL;
-    }
-
-    $storage = \Drupal::entityTypeManager()->getStorage('og_role');
-
-    return count($rids) == 1 ? $storage->load(reset($rids)) : $storage->loadMultiple($rids);
+    return Og::permissionObjectLoader('og_role', 'name', $name, $fields);
   }
 
 }
