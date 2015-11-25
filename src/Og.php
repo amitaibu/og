@@ -10,6 +10,7 @@ namespace Drupal\og;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\FieldConfigInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\og\Plugin\EntityReferenceSelection\OgSelection;
@@ -195,13 +196,13 @@ class Og {
   /**
    * Return TRUE if field is a group audience type.
    *
-   * @param $field_config
+   * @param $field_definition
    *   The field config object.
    *
    * @return bool
    */
-  public static function isGroupAudienceField(FieldConfigInterface $field_config) {
-    return $field_config->getType() === 'og_membership_reference';
+  public static function isGroupAudienceField(FieldDefinitionInterface $field_definition) {
+    return $field_definition->getType() === 'og_membership_reference';
   }
 
   /**

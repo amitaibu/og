@@ -42,8 +42,15 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       '#disabled' => $is_group,
     );
     // Group content settings.
-    // @TODO
     $is_group_content = FALSE;
+    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $entity->id());
+    foreach ($field_definitions as $field_definition) {
+      /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
+      if (Og::isGroupAudienceField($field_definition)) {
+        $is_group_content = TRUE;
+        break;
+      }
+    }
     $description = t('Set the content type to be a group content, that can be associated with groups.');
     if ($is_group_content) {
       $description .= '<br/>' . t('To unset the group content definition or change the settings you should delete the "Groups audience" field via !url.', $url);
