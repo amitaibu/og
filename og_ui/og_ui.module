@@ -24,7 +24,10 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     // This is an entity type, which of course, is an entity...
     $entity = $entity_form_object->getEntity();
     $bundle = $entity->id();
-    $entity_type_id = $entity->getEntityTypeId();
+    $entity_type_id = \Drupal::entityTypeManager()->getDefinition($entity->getEntityTypeId())->getBundleOf();
+    if (!$entity_type_id) {
+      return;
+    }
     $form['og'] = array(
       '#type' => 'fieldset',
       '#title' => t('Organic groups'),
