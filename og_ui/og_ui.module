@@ -19,11 +19,10 @@ use Drupal\og\Og;
  * @param $form_id
  */
 function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
-  if ($form_state->getBuildInfo()['callback_object'] instanceof BundleEntityFormBase) {
-    /** @var BundleEntityFormBase $entity_form_object */
-    $entity_form_object = $form_state->getBuildInfo()['callback_object'];
+  if ($form_state->getFormObject() instanceof BundleEntityFormBase) {
     // This is an entity type, which of course, is an entity...
-    $entity = $entity_form_object->getEntity();
+    /** @var \Drupal\Core\Entity\EntityInterface $entity */
+    $entity = $form_state->getFormObject()->getEntity();
     // Example: article.
     $bundle = $entity->id();
     $definition = \Drupal::entityTypeManager()->getDefinition($entity->getEntityTypeId());
