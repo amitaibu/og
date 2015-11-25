@@ -7,6 +7,8 @@ use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
 use Drupal\Core\Entity\BundleEntityFormBase;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\field_ui\FieldUI;
 use Drupal\og\Og;
 
 /**
@@ -19,7 +21,9 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
   if ($form_state->getBuildInfo()['callback_object'] instanceof BundleEntityFormBase) {
     /** @var BundleEntityFormBase $entity_form_object */
     $entity_form_object = $form_state->getBuildInfo()['callback_object'];
+    // This is an entity type, which of course, is an entity...
     $entity = $entity_form_object->getEntity();
+    $bundle = $entity->id();
     $entity_type_id = $entity->getEntityTypeId();
     $form['og'] = array(
       '#type' => 'fieldset',
@@ -28,10 +32,10 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       '#group' => 'additional_settings',
       '#description' => t('Specify how OG should treat entities of this type. Entities may serve as a group, may be an entity in the group, or may not participate in OG at all.'),
     );
-    $is_group = Og::isGroup($entity_type_id, $entity->id());
+    $is_group = Og::isGroup($entity_type_id, $bundle);
     $description = t('Set the content type to be a group, that content will be associated with, and will have group members.');
     if ($is_group) {
-      $url = '@todo';
+      $url = Link::createFromRoute(t('Manage fields'), FieldUI::getOverviewRouteInfo($entity_type_id, $bundle));
       $description .= '<br/>' . t('To unset the group definition you should delete the "Group type" field via !url.', $url);
     }
     $form['og']['og_group_type'] = array(
@@ -43,7 +47,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     );
     // Group content settings.
     $is_group_content = FALSE;
-    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $entity->id());
+    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
     foreach ($field_definitions as $field_definition) {
       /** @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition */
       if (Og::isGroupAudienceField($field_definition)) {
