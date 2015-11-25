@@ -1,0 +1,162 @@
+<?php
+/**
+ * @file
+ * Contains
+ */
+use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
+use Drupal\Core\Entity\BundleEntityFormBase;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\og\Og;
+
+/**
+ * Implements hook_form_alter().
+ * @param $form
+ * @param \Drupal\Core\Form\FormStateInterface $form_state
+ * @param $form_id
+ */
+function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form_state->getBuildInfo()['callback_object'] instanceof BundleEntityFormBase) {
+    /** @var BundleEntityFormBase $entity_form_object */
+    $entity_form_object = $form_state->getBuildInfo()['callback_object'];
+    $entity = $entity_form_object->getEntity();
+    $entity_type_id = $entity->getEntityTypeId();
+    $form['og'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Organic groups'),
+      '#collapsible' => TRUE,
+      '#group' => 'additional_settings',
+      '#description' => t('Specify how OG should treat entities of this type. Entities may serve as a group, may be an entity in the group, or may not participate in OG at all.'),
+    );
+    $is_group = Og::isGroup($entity_type_id, $entity->id());
+    $description = t('Set the content type to be a group, that content will be associated with, and will have group members.');
+    if ($is_group) {
+      $url = '@todo';
+      $description .= '<br/>' . t('To unset the group definition you should delete the "Group type" field via !url.', $url);
+    }
+    $form['og']['og_group_type'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Group'),
+      '#default_value' => $is_group,
+      '#description' => $description,
+      '#disabled' => $is_group,
+    );
+    // Group content settings.
+    // @TODO
+    $is_group_content = FALSE;
+    $description = t('Set the content type to be a group content, that can be associated with groups.');
+    if ($is_group_content) {
+      $description .= '<br/>' . t('To unset the group content definition or change the settings you should delete the "Groups audience" field via !url.', $url);
+    }
+    $group_content_options = Og::groupManager()->getGroupsForEntityType($entity_type_id);
+    if (!$group_content_options) {
+      $description .= '<br/>' . t('There are no group bundles defined.');
+    }
+
+    $form['og']['og_group_content_type'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Group content'),
+      '#default_value' =>  $is_group_content,
+      '#description' => $description,
+      '#disabled' => !$group_content_options || $is_group_content,
+    );
+
+    if ($group_content_options) {
+      // Don't show the settings, as there might be multiple OG audience fields
+      // in the same bundle.
+      $form['og']['target_type'] = array(
+        '#type' => 'select',
+        '#title' => t('Target type'),
+        '#options' => $group_content_options,
+        '#default_value' => key($group_content_options),
+        '#description' => t('The entity type that can be referenced thru this field.'),
+        '#ajax' => array(
+          'callback' => 'og_ui_entity_type_form_settings',
+          'wrapper' => 'og-settings-wrapper',
+        ),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="og_group_content_type"]' => array('checked' => TRUE),
+          ),
+        ),
+      );
+
+      $target_type = !empty($form_state['values']['target_type']) ? $form_state['values']['target_type'] : key($group_content_options);
+      $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo($entity_type_id);
+      foreach ($bundles as $bundle_name => $bundle_info) {
+        if (Og::isGroup($target_type, $bundle_name)) {
+          $bundle_options[$bundle_name] = $bundle_info['label'];
+        }
+      }
+
+      // Get the bundles that are acting as group.
+      $form['og']['target_bundles'] = array(
+        '#prefix' => '<div id="og-settings-wrapper">',
+        '#suffix' => '</div>',
+        '#type' => 'select',
+        '#title' => t('Target bundles'),
+        '#options' => $bundles,
+        '#default_value' => array(),
+        '#size' => 6,
+        '#multiple' => TRUE,
+        '#description' => t('The bundles of the entity type that can be referenced. Optional, leave empty for all bundles.'),
+        '#states' => array(
+          'visible' => array(
+            ':input[name="og_group_content_type"]' => array('checked' => TRUE),
+          ),
+        ),
+      );
+    }
+  }
+}
+
+/**
+ * AJAX callback to attach the message type fields to the form.
+ *
+ * Since the controlling logic for populating the form is in the form builder
+ * function, all we do here is select the element and return it to be updated.
+ */
+function og_ui_entity_type_form_settings(array $form, array &$form_state) {
+  return $form['og']['target_bundles'];
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function og_ui_entity_insert(EntityInterface $entity) {
+  og_ui_entity_type_save($entity);
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function og_ui_entity_update(EntityInterface $entity) {
+  og_ui_entity_type_save($entity);
+}
+
+function og_ui_entity_type_save(EntityInterface $entity) {
+  if (!$entity instanceof ConfigEntityBundleBase) {
+
+  }
+  if (variable_get('og_group_type_' . $bundle_name, FALSE)) {
+    og_create_field(OG_GROUP_FIELD, 'node', $bundle_name);
+  }
+
+  if (variable_get('og_group_content_type_' . $bundle_name, FALSE) && !og_is_group_content_type('node', $bundle_name)) {
+    $og_field = og_fields_info(OG_AUDIENCE_FIELD);
+    $og_field['field']['target_type'] = variable_get('target_type_' . $bundle_name);
+    $og_field['field']['settings']['handler_settings']['target_bundles'] = variable_get('target_bundles_' . $bundle_name);
+    og_create_field(OG_AUDIENCE_FIELD, 'node', $bundle_name, $og_field);
+  }
+
+  // Delete the variable, as we will rely on the presence of the field.
+  $vars = array(
+    'og_group_type',
+    'og_group_content_type',
+    'target_type',
+    'target_bundles',
+  );
+  foreach ($vars as $var) {
+    variable_del($var . '_' . $bundle_name);
+  }
+}
