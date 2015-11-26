@@ -101,6 +101,14 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
           $bundle_options[$bundle_name] = $bundle_info['label'];
         }
       }
+      $default_value = [];
+      $field = FieldConfig::loadByName($entity_type_id, $bundle, OG_AUDIENCE_FIELD);
+      if ($field) {
+        $handler_settings = $field->getSetting('handler_settings');
+        if (isset($handler_settings['target_bundles'])) {
+          $default_value = $handler_settings['target_bundles'];
+        }
+      }
 
       // Get the bundles that are acting as group.
       $form['og']['target_bundles'] = array(
@@ -109,7 +117,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         '#type' => 'select',
         '#title' => t('Target bundles'),
         '#options' => $bundles,
-        '#default_value' => array(),
+        '#default_value' => $default_value,
         '#size' => 6,
         '#multiple' => TRUE,
         '#description' => t('The bundles of the entity type that can be referenced. Optional, leave empty for all bundles.'),
@@ -170,6 +178,15 @@ function og_ui_entity_type_save(EntityInterface $entity) {
     }
     elseif ($field = FieldConfig::loadByName($entity_type_id, $bundle, OG_AUDIENCE_FIELD)) {
       $field->delete();
+      return;
+    }
+  }
+  if ($field = FieldConfig::loadByName($entity_type_id, $bundle, OG_AUDIENCE_FIELD)) {
+    $handler_settings = $field->getSetting('handler_settings');
+    if (!isset($handler_settings['target_bundles']) || $entity->target_bundles != $handler_settings['target_bundles']) {
+      $handler_settings['target_bundles'] = $entity->target_bundles;
+      $field->setSetting('handler_settings', $handler_settings);
+      $field->save();
     }
   }
 }
