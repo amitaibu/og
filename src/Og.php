@@ -171,7 +171,7 @@ class Og {
   public static function isGroupContent($entity_type_id, $bundle) {
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
     foreach ($field_definitions as $field_definition) {
-      if (Og::isGroupAudienceField($field_definition)) {
+      if (static::isGroupAudienceField($field_definition)) {
         return TRUE;
       }
     }
@@ -326,7 +326,7 @@ class Og {
   public static function getSelectionHandler($entity, $bundle, $field_name, array $options = []) {
     $field_definition = FieldConfig::loadByName($entity, $bundle, $field_name);
 
-    if (!Og::isGroupAudienceField($field_definition)) {
+    if (!static::isGroupAudienceField($field_definition)) {
       throw new \Exception(new FormattableMarkup('The field @name is not an audience field.', ['@name' => $field_name]));
     }
 

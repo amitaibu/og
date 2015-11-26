@@ -94,7 +94,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         ),
       );
 
-      $target_type = !empty($form_state['values']['target_type']) ? $form_state['values']['target_type'] : key($group_content_options);
+      $target_type = $form_state->hasValue('target_type') ? $form_state->getValue('target_type') : key($group_content_options);
       $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo($entity_type_id);
       foreach ($bundles as $bundle_name => $bundle_info) {
         if (Og::isGroup($target_type, $bundle_name)) {
