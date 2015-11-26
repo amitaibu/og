@@ -59,7 +59,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     $is_group_content = Og::isGroupContent($entity_type_id, $bundle);
     $description = t('Set the content type to be a group content, that can be associated with groups.');
     if ($is_group_content) {
-      $description .= '<br/>' . t('To unset the group content definition or change the settings you should delete the "Groups audience" field via !url.', $url);
+      $description .= '<br/>' . t('To unset the group content definition or change the settings you should delete the "Groups audience" field via @url.', ['@url' => $url]);
     }
     $group_content_options = Og::groupManager()->getGroupsForEntityType($entity_type_id);
     if (!$group_content_options) {
@@ -173,7 +173,7 @@ function og_ui_entity_type_save(EntityInterface $entity) {
   }
   $is_group_content = Og::isGroupContent($entity_type_id, $bundle);
   if ($entity->og_group_content_bundle != $is_group_content) {
-    if ($is_group_content) {
+    if ($entity->og_group_content_bundle) {
       Og::createField($entity_type_id, $bundle);
     }
     elseif ($field = FieldConfig::loadByName($entity_type_id, $bundle, OG_AUDIENCE_FIELD)) {
