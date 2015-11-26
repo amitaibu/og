@@ -45,7 +45,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
     );
     $is_group = Og::isGroup($entity_type_id, $bundle);
     $description = t('Set "%bundle"to be a group, so other entities can be associated with it later, and can have group members.', $args);
-    if ($is_group) {
+    if ($is_group && \Drupal::moduleHandler()->moduleExists('field_ui')) {
       $url = Link::createFromRoute(t('Manage fields'), FieldUI::getOverviewRouteInfo($entity_type_id, $bundle));
       $description .= '<br/>' . t('To unset the group definition you should delete the "Group type" field via @url.', ['@url' => $url]);
     }
@@ -73,7 +73,7 @@ function _og_ui_add_group_settings_elements(&$form, $entity_type_id, $bundle) {
   $is_group_content = Og::isGroupContent($entity_type_id, $bundle);
 
   $description = t('Set the content type to be a group content, that can be associated with groups.');
-  if ($is_group_content) {
+  if ($is_group_content && \Drupal::moduleHandler()->moduleExists('field_ui')) {
     $url = Link::createFromRoute(t('Manage fields'), FieldUI::getOverviewRouteInfo($entity_type_id, $bundle));
     $description .= '<br/>' . t('To unset the group content definition or change the settings you should delete the "Groups audience" field via @url.', ['@url' => $url]);
   }
