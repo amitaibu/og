@@ -41,19 +41,12 @@ function og_ui_form_alter(array &$form, FormStateInterface $form_state, $form_id
       '#group' => 'additional_settings',
       '#description' => t('Each "%bundle" may serve as a group, may belong to a group, or may not participate in OG at all.', $args),
     );
-    $is_group = Og::isGroup($entity_type_id, $bundle);
     $description = t('Set "%bundle"to be a group, so other entities can be associated with it later, and can have group members.', $args);
-    if ($is_group && \Drupal::moduleHandler()->moduleExists('field_ui')) {
-      $link = Link::fromTextAndUrl(t('Manage fields'), FieldUI::getOverviewRouteInfo($entity_type_id, $bundle))->toRenderable();
-      $args = ['@url' => render($link)];
-      $description .= '<br/>' . t('To unset the group definition you should delete the "Group type" field via @url.', $args);
-    }
     $form['og']['og_group_type'] = array(
       '#type' => 'checkbox',
       '#title' => t('Group'),
-      '#default_value' => $is_group,
+      '#default_value' => Og::isGroup($entity_type_id, $bundle),
       '#description' => $description,
-      '#disabled' => $is_group,
     );
     _og_ui_add_group_settings_elements($form, $entity_type_id, $bundle);
 
