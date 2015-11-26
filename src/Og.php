@@ -81,13 +81,13 @@ class Og {
     }
 
     // Define the view mode for the field.
-    if ($fieldViewModes = $og_field->viewModesDefinition()) {
+    if ($field_view_modes = $og_field->viewModesDefinition()) {
       $prefix = $entity_type . '.' . $bundle . '.';
-      $view_modes = \Drupal::entityTypeManager()->getStorage('entity_view_display')->loadMultiple(array_keys($fieldViewModes));
+      $view_modes = \Drupal::entityTypeManager()->getStorage('entity_view_display')->loadMultiple(array_keys($field_view_modes));
 
       foreach ($view_modes as $key => $view_mode) {
         /** @var \Drupal\Core\Entity\Display\EntityDisplayInterface $view_mode  */
-        $view_mode->setComponent($field_name, $fieldViewModes[$prefix . $key])->save();
+        $view_mode->setComponent($field_name, $field_view_modes[$prefix . $key])->save();
       }
     }
   }
