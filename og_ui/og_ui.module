@@ -37,7 +37,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       '%bundle' => Unicode::lcfirst($entity->label()),
     ];
     $form['og'] = array(
-      '#type' => 'fieldset',
+      '#type' => 'details',
       '#title' => t('Organic groups'),
       '#collapsible' => TRUE,
       '#group' => 'additional_settings',
