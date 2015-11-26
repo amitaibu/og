@@ -82,7 +82,7 @@ class FieldAccessTest extends KernelTestBase {
     Og::groupManager()->addGroup('entity_test', $this->groupBundle);
 
     // Add OG audience field to users.
-    Og::createField(OG_AUDIENCE_FIELD, 'user', 'user');
+    Og::createField('user', 'user');
 
     Role::create(['id' => 'group_admin', 'label' => 'Group Admin'])
       ->grantPermission('administer group')
