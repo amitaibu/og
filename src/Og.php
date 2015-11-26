@@ -163,10 +163,13 @@ class Og {
   /**
    * Check if the given entity type / bundle can belong to a group.
    *
-   * @param $entity_type_id
-   * @param $bundle
+   * @param string $entity_type_id
+   *   The entity type to check.
+   * @param string $bundle
+   *   The bundle to check.
    *
    * @return bool
+   *   TRUE if the group audience field is present on the bundle.
    */
   public static function isGroupContent($entity_type_id, $bundle) {
     $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
