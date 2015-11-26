@@ -9,7 +9,6 @@ namespace Drupal\og;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Field\FieldConfigInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -30,14 +29,14 @@ class Og {
   /**
    * Create an organic groups field in a bundle.
    *
-   * @param $field_name
-   *   The field name.
    * @param $entity_type
    *   The entity type.
    * @param $bundle
    *   The bundle name.
+   * @param $field_name
+   *   The field name.
    */
-  public static function createField($field_name, $entity_type, $bundle) {
+  public static function createField($entity_type, $bundle, $field_name = OG_AUDIENCE_FIELD) {
     $og_field = static::fieldInfo($field_name)
       ->setEntityType($entity_type)
       ->setBundle($bundle);
@@ -60,7 +59,7 @@ class Og {
       static::invalidateCache();
     }
 
-    $form_display_storage = \Drupal::entityManager()->getStorage('entity_form_display');
+    $form_display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
     /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $displayForm */
     if (!$displayForm = $form_display_storage->load($entity_type . '.' . $bundle . '.default')) {
 
@@ -84,10 +83,11 @@ class Og {
     // Define the view mode for the field.
     if ($fieldViewModes = $og_field->viewModesDefinition()) {
       $prefix = $entity_type . '.' . $bundle . '.';
-      $viewModes = \Drupal::entityManager()->getStorage('entity_view_display')->loadMultiple(array_keys($fieldViewModes));
+      $view_modes = \Drupal::entityTypeManager()->getStorage('entity_view_display')->loadMultiple(array_keys($fieldViewModes));
 
-      foreach ($viewModes as $key => $viewMode) {
-        $viewMode->setComponent($field_name, $fieldViewModes[$prefix . $key])->save();
+      foreach ($view_modes as $key => $view_mode) {
+        /** @var \Drupal\Core\Entity\Display\EntityDisplayInterface $view_mode  */
+        $view_mode->setComponent($field_name, $fieldViewModes[$prefix . $key])->save();
       }
     }
   }
@@ -158,6 +158,24 @@ class Og {
     }
 
     return static::$entityGroupCache[$identifier];
+  }
+
+  /**
+   * Check if the given entity type / bundle can belong to a group.
+   *
+   * @param $entity_type_id
+   * @param $bundle
+   *
+   * @return bool
+   */
+  public static function isGroupContent($entity_type_id, $bundle) {
+    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
+    foreach ($field_definitions as $field_definition) {
+      if (Og::isGroupAudienceField($field_definition)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
   /**
