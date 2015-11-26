@@ -63,23 +63,21 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
       $description .= '<br/>' . t('To unset the group content definition or change the settings you should delete the "Groups audience" field via @url.', ['@url' => $url]);
     }
     $target_type_default = FALSE;
-    $field = FieldConfig::loadByName($entity_type_id, $bundle, OG_AUDIENCE_FIELD);
-    $handler_settings = $field ? $field->getSetting('handler_settings') : [];
+    $handler_settings = [];
+    if ($field = FieldConfig::loadByName($entity_type_id, $bundle, OG_AUDIENCE_FIELD)) {
+      $handler_settings = $field->getSetting('handler_settings');
+      if (isset($handler_settings['target_type'])) {
+        $target_type_default = $handler_settings['target_type'];
+      }
+    }
     $target_types = [];
     $bundle_options = [];
     foreach (Og::groupManager()->getAllGroupBundles() as $group_entity_type => $bundles) {
       if (!$target_type_default) {
-        if ($form_state->hasValue('target_type')) {
-          $target_type_default = $form_state->getValue('target_type');
-        }
-        elseif (isset($handler_settings['target_type']))
-          $target_type_default = $handler_settings['target_type'];
-        else {
-          $target_type_default = $group_entity_type;
-        }
+        $target_type_default = $group_entity_type;
       }
       $target_types[$group_entity_type] = \Drupal::entityTypeManager()->getDefinition($group_entity_type)->getLabel();
-      if ($target_type_default && $target_type_default == $group_entity_type) {
+      if ($target_type_default == $group_entity_type) {
         $bundle_info = \Drupal::service('entity_type.bundle.info')->getBundleInfo($target_type_default);
         foreach ($bundles as $bundle_name) {
           $bundle_options[$bundle_name] = $bundle_info[$bundle_name]['label'];
@@ -118,14 +116,6 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         ),
       );
 
-      $default_value = [];
-      if ($field) {
-        $handler_settings = $field->getSetting('handler_settings');
-        if (isset($handler_settings['target_bundles'])) {
-          $default_value = $handler_settings['target_bundles'];
-        }
-      }
-
       // Get the bundles that are acting as group.
       $form['og']['target_bundles'] = array(
         '#prefix' => '<div id="og-settings-wrapper">',
@@ -133,7 +123,7 @@ function og_ui_form_alter(&$form, FormStateInterface $form_state, $form_id) {
         '#type' => 'select',
         '#title' => t('Target bundles'),
         '#options' => $bundle_options,
-        '#default_value' => $default_value,
+        '#default_value' => isset($handler_settings['target_bundles']) ? $handler_settings['target_bundles'] : [],
         '#size' => 6,
         '#multiple' => TRUE,
         '#description' => t('The bundles of the entity type that can be referenced. Optional, leave empty for all bundles.'),
