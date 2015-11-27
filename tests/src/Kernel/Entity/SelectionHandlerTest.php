@@ -92,7 +92,7 @@ class SelectionHandlerTest extends KernelTestBase {
     Og::groupManager()->addGroup('node', $this->groupBundle);
 
     // Add og audience field to group content.
-    Og::CreateField(OG_AUDIENCE_FIELD, 'node', $this->groupContentBundle);
+    Og::CreateField('node', $this->groupContentBundle);
 
     // Get the storage of the field.
     $this->selectionHandler = Og::getSelectionHandler('node', $this->groupContentBundle, OG_AUDIENCE_FIELD, ['handler_settings' => ['field_mode' => 'default']]);

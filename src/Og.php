@@ -29,14 +29,14 @@ class Og {
   /**
    * Create an organic groups field in a bundle.
    *
-   * @param $field_name
-   *   The field name.
    * @param $entity_type
    *   The entity type.
    * @param $bundle
    *   The bundle name.
+   * @param $field_name
+   *   The field name.
    */
-  public static function createField($field_name, $entity_type, $bundle) {
+  public static function createField($entity_type, $bundle, $field_name = OG_AUDIENCE_FIELD) {
     $og_field = static::fieldInfo($field_name)
       ->setEntityType($entity_type)
       ->setBundle($bundle);
@@ -59,7 +59,7 @@ class Og {
       static::invalidateCache();
     }
 
-    $form_display_storage = \Drupal::entityManager()->getStorage('entity_form_display');
+    $form_display_storage = \Drupal::entityTypeManager()->getStorage('entity_form_display');
     /** @var \Drupal\Core\Entity\Display\EntityFormDisplayInterface $displayForm */
     if (!$displayForm = $form_display_storage->load($entity_type . '.' . $bundle . '.default')) {
 
@@ -81,12 +81,13 @@ class Og {
     }
 
     // Define the view mode for the field.
-    if ($fieldViewModes = $og_field->viewModesDefinition()) {
+    if ($field_view_modes = $og_field->viewModesDefinition()) {
       $prefix = $entity_type . '.' . $bundle . '.';
-      $viewModes = \Drupal::entityManager()->getStorage('entity_view_display')->loadMultiple(array_keys($fieldViewModes));
+      $view_modes = \Drupal::entityTypeManager()->getStorage('entity_view_display')->loadMultiple(array_keys($field_view_modes));
 
-      foreach ($viewModes as $key => $viewMode) {
-        $viewMode->setComponent($field_name, $fieldViewModes[$prefix . $key])->save();
+      foreach ($view_modes as $key => $view_mode) {
+        /** @var \Drupal\Core\Entity\Display\EntityDisplayInterface $view_mode  */
+        $view_mode->setComponent($field_name, $field_view_modes[$prefix . $key])->save();
       }
     }
   }
@@ -160,6 +161,27 @@ class Og {
   }
 
   /**
+   * Check if the given entity type / bundle can belong to a group.
+   *
+   * @param string $entity_type_id
+   *   The entity type to check.
+   * @param string $bundle
+   *   The bundle to check.
+   *
+   * @return bool
+   *   TRUE if the group audience field is present on the bundle.
+   */
+  public static function isGroupContent($entity_type_id, $bundle) {
+    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
+    foreach ($field_definitions as $field_definition) {
+      if (static::isGroupAudienceField($field_definition)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
    * Check if the given entity is a group.
    *
    * @param string $entity_type_id
@@ -195,13 +217,14 @@ class Og {
   /**
    * Return TRUE if field is a group audience type.
    *
-   * @param $field_config
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
    *   The field config object.
    *
    * @return bool
+   *   TRUE if the field is a group audience type, FALSE otherwise.
    */
-  public static function isGroupAudienceField(FieldDefinitionInterface $field_config) {
-    return $field_config->getType() === 'og_membership_reference';
+  public static function isGroupAudienceField(FieldDefinitionInterface $field_definition) {
+    return $field_definition->getType() === 'og_membership_reference';
   }
 
   /**
@@ -307,7 +330,7 @@ class Og {
   public static function getSelectionHandler($entity, $bundle, $field_name, array $options = []) {
     $field_definition = FieldConfig::loadByName($entity, $bundle, $field_name);
 
-    if (!Og::isGroupAudienceField($field_definition)) {
+    if (!static::isGroupAudienceField($field_definition)) {
       throw new \Exception(new FormattableMarkup('The field @name is not an audience field.', ['@name' => $field_name]));
     }
 
