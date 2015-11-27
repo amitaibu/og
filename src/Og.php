@@ -10,6 +10,8 @@ namespace Drupal\og;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\og\Plugin\EntityReferenceSelection\OgSelection;
@@ -180,6 +182,32 @@ class Og {
   }
 
   /**
+   * Returns whether an entity is group content.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   Group content has to implement ContentEntityInterface but this is checked
+   *   inside the method for easier usage in calling code.
+   *
+   * @return bool
+   */
+  public static function isGroupContent(EntityInterface $entity) {
+    if (!$entity instanceof ContentEntityInterface) {
+      return FALSE;
+    }
+    // @todo Consider using bundleFieldDefinitions() method so there is less to
+    // iterate over. However, that is not really used and has a warning next to
+    // it. Also, probably makes sense to cache the entity types and bundles so
+    // we can just look this up from a simpel mapping.
+    foreach ($entity->getFieldDefinitions() as $field_definition) {
+      if (static::isGroupAudienceField($field_definition)) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
    * Return TRUE if field is a group audience type.
    *
    * @param $field_config
@@ -300,12 +328,14 @@ class Og {
       throw new \Exception(new FormattableMarkup('The field @name is not an audience field.', ['@name' => $field_name]));
     }
 
-    $options += [
+    $options = NestedArray::mergeDeep([
       'target_type' => $field_definition->getFieldStorageDefinition()->getSetting('target_type'),
       'field' => $field_definition,
       'handler' => $field_definition->getSetting('handler'),
-      'handler_settings' => [],
-    ];
+      'handler_settings' => [
+        'field_mode' => 'default',
+      ],
+    ], $options);
 
     // Deep merge the handler settings.
     $options['handler_settings'] = NestedArray::mergeDeep($field_definition->getSetting('handler_settings'), $options['handler_settings']);
