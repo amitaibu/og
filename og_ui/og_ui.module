@@ -44,8 +44,8 @@ function og_ui_entity_type_save(EntityInterface $entity) {
   $definition = \Drupal::entityTypeManager()->getDefinition($entity->getEntityTypeId());
   $entity_type_id = $definition->getBundleOf();
   $is_group = Og::isGroup($entity_type_id, $bundle);
-  if ($entity->og_group_type != $is_group) {
-    if ($entity->og_group_type) {
+  if ($entity->og_is_group != $is_group) {
+    if ($entity->og_is_group) {
       Og::groupManager()->addGroup($entity_type_id, $bundle);
     }
     else {

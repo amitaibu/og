@@ -73,7 +73,7 @@ class BundleFormAlter {
   }
 
   protected function addGroupType(array &$form, $form_state) {
-    $form['og'] = array(
+    $form['og']['og_is_group'] = array(
       '#type' => 'checkbox',
       '#title' => t('Group'),
       '#default_value' => Og::isGroup($this->entityTypeId, $this->bundle),
