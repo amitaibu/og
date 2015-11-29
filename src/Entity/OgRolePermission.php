@@ -134,7 +134,7 @@ class OgRolePermission extends ContentEntityBase {
   }
 
   /**
-   * Query role IDS.
+   * Query role IDs.
    *
    * @param $name
    *   The name of the role.
@@ -162,4 +162,5 @@ class OgRolePermission extends ContentEntityBase {
   public static function loadByName($name, $fields = []) {
     return Og::permissionObjectLoader('og_role_permission', 'permission', $name, $fields);
   }
+
 }
