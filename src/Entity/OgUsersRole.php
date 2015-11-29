@@ -10,11 +10,12 @@ use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\og\Og;
 use Drupal\user\Entity\User;
 
 /**
  * @ContentEntityType(
- *   id = "os_users_role",
+ *   id = "og_users_role",
  *   label = @Translation("OG users role"),
  *   module = "og",
  *   base_table = "og_users_roles",
@@ -156,4 +157,35 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
 
     return $fields;
   }
+
+  /**
+   * Query role IDs.
+   *
+   * @param $name
+   *   The name of the role.
+   * @param Array $fields
+   *   Additional fields to the query.
+   *
+   * @return array
+   *   List of role IDs.
+   */
+  public static function queryRoleIds($name, $fields = []) {
+    return Og::permissionQueryConstructor('og_users_role', 'group_type', $name, $fields);
+  }
+
+  /**
+   * Loading OG role by name.
+   *
+   * @param $name
+   *   The name of the role.
+   * @param Array $fields
+   *   Additional fields to the query.
+   *
+   * @return OgUsersRole|OgUsersRole[]
+   *   List of role IDs.
+   */
+  public static function loadByName($name, $fields = []) {
+    return Og::permissionObjectLoader('og_users_role', 'group_type', $name, $fields);
+  }
+
 }

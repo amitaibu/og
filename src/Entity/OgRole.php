@@ -6,17 +6,12 @@
 namespace Drupal\og\Entity;
 
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\og\Og;
 
 /**
- * todo: Find a way to attach the roles to group:
- *  - UUID?
- *  - Service?
- *
- * Convert into
- *
- *
  * @ContentEntityType(
  *   id = "og_role",
  *   label = @Translation("OG role"),
@@ -70,7 +65,7 @@ class OgRole extends ContentEntityBase {
    * @return $this
    */
   public function setGroupType($groupType) {
-    $this->set('groupType', $groupType);
+    $this->set('group_type', $groupType);
     return $this;
   }
 
@@ -160,22 +155,79 @@ class OgRole extends ContentEntityBase {
       ->setLabel(t('Role ID'))
       ->setDescription(t('Primary Key: Unique role ID.'));
 
-    $fields['gid'] = BaseFieldDefinition::create('integer')
-      ->setLabel(t('Group ID'))
-      ->setDescription(t("The group's unique ID."));
-
-    $fields['group_type'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Group type'))
-      ->setDescription(t("The group's entity type."));
-
-    $fields['group_bundle'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Group bundle'))
-      ->setDescription(t("The group's bundle name."));
-
     $fields['name'] = BaseFieldDefinition::create('string')
       ->setLabel(t('Name'))
       ->setDescription(t('Unique role name per group.'));
 
+    // todo: set gid, group_type and group_bundle as null.
+//    <aspilicious_home>     $fields['pass'] = BaseFieldDefinition::create('password')
+//      <aspilicious_home>       ->setLabel(t('Password'))
+//    <aspilicious_home>       ->setDescription(t('The password of this user (hashed).'))
+//    <aspilicious_home>       ->addConstraint('ProtectedUserField');
+
+    $fields['gid'] = BaseFieldDefinition::create('integer')
+      ->setLabel(t('Group ID'))
+      ->setDescription(t("The group's unique ID."))
+      ->setRequired(FALSE);
+
+    $fields['group_type'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Group type'))
+      ->setDescription(t("The group's entity type."))
+      ->setRequired(FALSE);
+
+    $fields['group_bundle'] = BaseFieldDefinition::create('string')
+      ->setLabel(t('Group bundle'))
+      ->setDescription(t("The group's bundle name."))
+      ->setRequired(FALSE);
+
     return $fields;
   }
+
+  /**
+   * Set group info from object.
+   *
+   * @param ContentEntityInterface $entity
+   *   The entity object.
+   *
+   * @return $this
+   */
+  public function setGroupEntity(ContentEntityInterface $entity) {
+    $this
+      ->setGid($entity->id())
+      ->setGroupType($entity->getEntityTypeId())
+      ->setGroupBundle($entity->bundle());
+
+    return $this;
+  }
+
+  /**
+   * Query role IDS.
+   *
+   * @param $name
+   *   The name of the role.
+   * @param Array $fields
+   *   Additional fields to the query.
+   *
+   * @return array
+   *   List of role IDs.
+   */
+  public static function queryRoleIds($name, $fields = []) {
+    return Og::permissionQueryConstructor('og_role', 'name', $name, $fields);
+  }
+
+  /**
+   * Loading OG role by name.
+   *
+   * @param $name
+   *   The name of the role.
+   * @param Array $fields
+   *   Additional fields to the query.
+   *
+   * @return OgRole|OgRole[]
+   *   List of role IDs.
+   */
+  public static function loadByName($name, $fields = []) {
+    return Og::permissionObjectLoader('og_role', 'name', $name, $fields);
+  }
+
 }

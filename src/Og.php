@@ -9,6 +9,7 @@ namespace Drupal\og;
 
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -320,6 +321,71 @@ class Og {
     $options['handler_settings'] = NestedArray::mergeDeep($field_definition->getSetting('handler_settings'), $options['handler_settings']);
 
     return \Drupal::service('plugin.manager.entity_reference_selection')->createInstance('og:default', $options);
+  }
+
+  /**
+   * Create a query against a specific permission realm: role, role permission
+   * or user role.
+   *
+   * @param $realm
+   *   The realm. i.e. role
+   * @param $main_property
+   *   The name of the main property to query against. i.e. name.
+   * @param $property_value
+   *   The value of the main property.
+   * @param $fields
+   *   Additional fields to the query.
+   *
+   * @return array
+   *   List of entity IDs.
+   */
+  public static function permissionQueryConstructor($realm, $main_property, $property_value, $fields) {
+    $query = \Drupal::entityQuery($realm)
+      ->condition($main_property, $property_value, '=');
+
+    foreach ($fields as $field => $info) {
+      if (is_array($info)) {
+        $value = $info['value'];
+        $operator = $info['operator'];
+      }
+      else {
+        $value = $info;
+        $operator = '=';
+      }
+
+      $query->condition($field, $value, $operator);
+    }
+
+    return $query->execute();
+
+  }
+
+  /**
+   * load object of a specific permission realm: role, role permission or user
+   * role.
+   *
+   * @param $realm
+   *   The realm. i.e. role
+   * @param $main_property
+   *   The name of the main property to query against. i.e. name.
+   * @param $property_value
+   *   The value of the main property.
+   * @param $fields
+   *   Additional fields to the query.
+   *
+   * @return ContentEntityBase|ContentEntityBase[]
+   *   List of entities.
+   */
+  public static function permissionObjectLoader($realm, $main_property, $property_value, $fields) {
+    $rids = self::permissionQueryConstructor($realm, $main_property, $property_value, $fields);
+
+    if (empty($rids)) {
+      return NULL;
+    }
+
+    $storage = \Drupal::entityTypeManager()->getStorage($realm);
+
+    return count($rids) == 1 ? $storage->load(reset($rids)) : $storage->loadMultiple($rids);
   }
 
 }
