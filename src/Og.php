@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\og\Entity\OgMembership;
 use Drupal\og\Plugin\EntityReferenceSelection\OgSelection;
 
 /**
@@ -442,6 +443,29 @@ class Og {
     $options['handler_settings'] = NestedArray::mergeDeep($field_definition->getSetting('handler_settings'), $options['handler_settings']);
 
     return \Drupal::service('plugin.manager.entity_reference_selection')->createInstance('og:default', $options);
+  }
+
+  /**
+   * Creates and saves an OG membership.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\EntityInterface $group
+   * @param string $membership_type
+   * @param string $field_name
+   *
+   * @return \Drupal\og\Entity\OgMembership
+   */
+  public static function createMembership(EntityInterface $entity, EntityInterface $group, $membership_type = OG_MEMBERSHIP_TYPE_DEFAULT, $field_name = OG_AUDIENCE_FIELD) {
+    $membership = OgMembership::create(['type' => $membership_type]);
+    $membership
+      ->setEntityId($entity->id())
+      ->setEntityType($entity->getEntityTypeId())
+      ->setGid($group->id())
+      ->setGroupType($group->getEntityTypeId())
+      ->setFieldName($field_name)
+      ->save();
+
+    return $membership;
   }
 
 }
