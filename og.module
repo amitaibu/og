@@ -41,7 +41,7 @@ function og_entity_insert(EntityInterface $entity) {
 
   if ($entity instanceof EntityOwnerInterface) {
     // Subscribe the group manager.
-    Og::createMembership($entity->getOwner(), $entity, OG_MEMBERSHIP_TYPE_DEFAULT, OG_AUDIENCE_FIELD);
+    Og::createMembership($entity->getOwner(), $entity, OG_MEMBERSHIP_TYPE_DEFAULT, OG_AUDIENCE_FIELD)->save();
   }
 }
 
@@ -676,56 +676,6 @@ function _og_membership_type_access($op, $entity, $account = NULL, $entity_type 
  */
 function _og_membership_invalidate_cache() {
   og_invalidate_cache();
-}
-
-/**
- * Creates a new OG membership.
- *
- * If a group membership already exists, an exception will be thrown.
- *
- * @param $group_type
- *   The entity type of the group.
- * @param $gid
- *   The group ID.
- * @param $entity_type
- *   The entity type of the group content.
- * @param $etid
- *   The entity ID of the group content.
- * @param $field_name
- *   The group audience field name.
- * @param $values
- *   (optional) Array of fields values to be attached to the OG membership, that
- *   will be processed using entity-metadata wrapper.
- *
- * @return OgMembership
- *   Returns a new OG membership object.
- *
- * @see entity_property_values_create_entity()
- */
-function _og_membership_create($group_type, $gid, $entity_type, $etid, $field_name, $values = array()) {
-  global $language;
-
-  $values += array(
-    'group_type' => $group_type,
-    'gid' => $gid,
-    'entity_type' => $entity_type,
-    'etid' => $etid,
-    'state' => OgMembershipInterface::STATE_ACTIVE,
-    'created' => time(),
-    'field_name' => $field_name,
-    'language' => $language->language,
-  );
-
-  if (!og_is_group_audience_field($field_name)) {
-    throw new OgException(format_string('%field-name is not a valid group-audience field.', array('%field-name' => $field_name)));
-  }
-
-  // Get the type from the field.
-  $field = field_info_field($field_name);
-  $values['type'] = $field['settings']['handler_settings']['membership_type'];
-
-  $wrapper = entity_property_values_create_entity('og_membership', $values);
-  return $wrapper->value();
 }
 
 /**

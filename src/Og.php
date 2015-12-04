@@ -474,8 +474,7 @@ class Og {
       ->setEntityType($entity->getEntityTypeId())
       ->setGid($group->id())
       ->setGroupType($group->getEntityTypeId())
-      ->setFieldName($field_name)
-      ->save();
+      ->setFieldName($field_name);
 
     return $membership;
   }
