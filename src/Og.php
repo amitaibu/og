@@ -9,7 +9,9 @@ namespace Drupal\og;
 
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Field\FieldException;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\og\Entity\OgMembership;
@@ -448,14 +450,24 @@ class Og {
   /**
    * Creates and saves an OG membership.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
    * @param \Drupal\Core\Entity\EntityInterface $group
    * @param string $membership_type
    * @param string $field_name
    *
    * @return \Drupal\og\Entity\OgMembership
    */
-  public static function createMembership(EntityInterface $entity, EntityInterface $group, $membership_type = OG_MEMBERSHIP_TYPE_DEFAULT, $field_name = OG_AUDIENCE_FIELD) {
+  public static function createMembership(FieldableEntityInterface $entity, EntityInterface $group, $membership_type = OG_MEMBERSHIP_TYPE_DEFAULT, $field_name = OG_AUDIENCE_FIELD) {
+    $field_definition = $entity->getFieldDefinition($field_name);
+
+    if (!$field_definition) {
+      throw new FieldException(sprintf('No "%s" field found for %s %s entity', $field_name, $entity->bundle(), $entity->getEntityTypeId()));
+    }
+
+    if (!static::isGroupAudienceField($field_definition)) {
+      throw new OgException(sprintf('%s is not a valid group-audience field.', $field_name));
+    }
+
     $membership = OgMembership::create(['type' => $membership_type]);
     $membership
       ->setEntityId($entity->id())
