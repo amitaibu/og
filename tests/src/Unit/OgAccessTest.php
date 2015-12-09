@@ -59,7 +59,7 @@ class OgAccessTest extends OgAccessTestBase {
    * @dataProvider operationProvider
    */
   public function testUserAccessOwner($operation) {
-    $this->config->get('group_manager_full_access')->willReturn(TRUE);
+    $this->config->willReturn(TRUE);
     $user_access = OgAccess::userAccess($this->groupEntity(TRUE)->reveal(), $operation, $this->user->reveal());
     $this->assertTrue($user_access->isAllowed());
   }

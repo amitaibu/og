@@ -12,7 +12,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 /**
  * A manager to keep track of which entity type/bundles are OG group enabled.
  */
-class GroupManager {
+class GroupMap {
 
   /**
    * The OG settings configuration key.
@@ -47,9 +47,14 @@ class GroupManager {
    */
   public function __construct(ConfigFactoryInterface $config_factory) {
     $this->configFactory = $config_factory;
-    $this->refreshGroupMap();
   }
 
+  protected function groupMap() {
+    if (!isset($this->groupMap)) {
+      $this->refreshGroupMap();
+    }
+    return $this->groupMap;
+  }
   /**
    * Determines whether an entity type ID and bundle ID are group enabled.
    *
@@ -59,7 +64,8 @@ class GroupManager {
    * @return bool
    */
   public function isGroup($entity_type_id, $bundle) {
-    return isset($this->groupMap[$entity_type_id]) && in_array($bundle, $this->groupMap[$entity_type_id]);
+    $group_map = $this->groupMap();
+    return isset($group_map[$entity_type_id]) && in_array($bundle, $group_map[$entity_type_id]);
   }
 
   /**
@@ -68,7 +74,8 @@ class GroupManager {
    * @return array
    */
   public function getGroupsForEntityType($entity_type_id) {
-    return isset($this->groupMap[$entity_type_id]) ? $this->groupMap[$entity_type_id] : [];
+    $group_map = $this->groupMap();
+    return isset($group_map[$entity_type_id]) ? $group_map[$entity_type_id] : [];
   }
 
   /**
@@ -77,7 +84,8 @@ class GroupManager {
    * @return array
    */
   public function getAllGroupBundles($entity_type = NULL) {
-    return !empty($this->groupMap[$entity_type]) ? $this->groupMap[$entity_type] : $this->groupMap;
+    $group_map = $this->groupMap;
+    return !empty($group_map[$entity_type]) ? $group_map[$entity_type] : $group_map;
   }
 
   /**

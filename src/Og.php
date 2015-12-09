@@ -116,57 +116,7 @@ class Og {
    *  then an empty array.
    */
   public static function getEntityGroups(EntityInterface $entity, array $states = [OG_STATE_ACTIVE], $field_name = NULL) {
-    $entity_type_id = $entity->getEntityTypeId();
-    $entity_id = $entity->id();
-
-    // Get a string identifier of the states, so we can retrieve it from cache.
-    if ($states) {
-      sort($states);
-      $state_identifier = implode(':', $states);
-    }
-    else {
-      $state_identifier = FALSE;
-    }
-
-    $identifier = [
-      $entity_type_id,
-      $entity_id,
-      $state_identifier,
-      $field_name,
-    ];
-
-    $identifier = implode(':', $identifier);
-    if (isset(static::$entityGroupCache[$identifier])) {
-      // Return cached values.
-      return static::$entityGroupCache[$identifier];
-    }
-
-    static::$entityGroupCache[$identifier] = [];
-    $query = \Drupal::entityQuery('og_membership')
-      ->condition('entity_type', $entity_type_id)
-      ->condition('etid', $entity_id);
-
-    if ($states) {
-      $query->condition('state', $states, 'IN');
-    }
-
-    if ($field_name) {
-      $query->condition('field_name', $field_name);
-    }
-
-    $results = $query->execute();
-
-    /** @var \Drupal\og\Entity\OgMembership[] $memberships */
-    $memberships = \Drupal::entityTypeManager()
-      ->getStorage('og_membership')
-      ->loadMultiple($results);
-
-    /** @var \Drupal\og\Entity\OgMembership $membership */
-    foreach ($memberships as $membership) {
-      static::$entityGroupCache[$identifier][$membership->getGroupType()][$membership->id()] = $membership->getGroup();
-    }
-
-    return static::$entityGroupCache[$identifier];
+    return static::groupRepository()->getEntityGroups($entity, $states, $field_name);
   }
 
   /**
@@ -288,42 +238,27 @@ class Og {
    *   none found.
    */
   public static function getAllGroupAudienceFields($entity_type_id, $bundle, $group_type_id = NULL, $group_bundle = NULL) {
-    $return = [];
-
-    foreach (\Drupal::entityManager()->getFieldDefinitions($entity_type_id, $bundle) as $field_definition) {
-      if (!static::isGroupAudienceField($field_definition)) {
-        // Not a group audience field.
-        continue;
-      }
-
-      $target_type = $field_definition->getFieldStorageDefinition()->getSetting('target_type');
-
-      if (isset($group_type_id) && $target_type != $group_type_id) {
-        // Field doesn't reference this group type.
-        continue;
-      }
-
-      $handler_settings = $field_definition->getSetting('handler_settings');
-
-      if (isset($group_bundle) && !empty($handler_settings['target_bundles']) && !in_array($group_bundle, $handler_settings['target_bundles'])) {
-        continue;
-      }
-
-      $field_name = $field_definition->getName();
-      $return[$field_name] = $field_definition;
-    }
-
-    return $return;
+    return static::groupRepository()->getAllGroupAudienceFields($entity_type_id, $bundle, $group_type_id, $group_bundle);
   }
 
   /**
    * Returns the group manager instance.
    *
-   * @return \Drupal\og\GroupManager
+   * @return \Drupal\og\GroupMap
    */
   public static function groupManager() {
     // @todo store static reference for this?
-    return \Drupal::service('og.group.manager');
+    return \Drupal::service('og.group_manager');
+  }
+
+  /**
+   * Returns the group repository instance.
+   *
+   * @return \Drupal\og\GroupRepository
+   */
+  public static function groupRepository() {
+    // @todo store static reference for this?
+    return \Drupal::service('og.group_repository');
   }
 
   /**
@@ -360,8 +295,7 @@ class Og {
       drupal_static_reset($cache);
     }
 
-    // @todo Consider using a reset() method.
-    static::$entityGroupCache = [];
+    static::groupRepository()->resetCache();
 
     // Invalidate the entity property cache.
     \Drupal::entityManager()->clearCachedDefinitions();

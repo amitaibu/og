@@ -2,9 +2,12 @@ services:
   plugin.manager.og.fields:
     class: Drupal\og\OgFieldsPluginManager
     parent: default_plugin_manager
-  og.group.manager:
-    class: Drupal\og\GroupManager
+  og.group_map:
+    class: Drupal\og\GroupMap
     arguments: ['@config.factory']
   og.permissions:
     class: Drupal\og\OgPermissionHandler
     arguments: ['@module_handler', '@string_translation', '@controller_resolver']
+  og.group_repository:
+    cllass: Drupal\og\GroupRepository
+    arguments: ['@entity_field.manager', '@entity.query']

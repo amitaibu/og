@@ -17,11 +17,17 @@ use Drupal\og\OgAccess;
 use Drupal\Tests\UnitTestCase;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\og\GroupManager;
+use Drupal\og\GroupMap;
 use Prophecy\Argument;
 
+/**
+ * Base class for the og access tests.
+ */
 class OgAccessTestBase extends UnitTestCase {
 
+  /**
+   * @var \Prophecy\Prophecy\MethodProphecy
+   */
   protected $config;
 
   /**
@@ -40,7 +46,7 @@ class OgAccessTestBase extends UnitTestCase {
   protected $bundle;
 
   /**
-   * @var \Drupal\og\GroupManager
+   * @var \Drupal\og\GroupMap
    */
   protected $groupManager;
 
@@ -48,17 +54,17 @@ class OgAccessTestBase extends UnitTestCase {
     $this->entityTypeId = $this->randomMachineName();
     $this->bundle = $this->randomMachineName();
 
-    $this->groupManager = $this->prophesize(GroupManager::class);
+    $this->groupManager = $this->prophesize(GroupMap::class);
     $this->groupManager->isGroup($this->entityTypeId, $this->bundle)->willReturn(TRUE);
 
     $cache_contexts_manager = $this->prophesize(CacheContextsManager::class);
     $cache_contexts_manager->assertValidTokens(Argument::any())->willReturn(TRUE);
 
-    $this->config = $this->addCache($this->prophesize(Config::class));
-    $this->config->get('group_manager_full_access')->willReturn(FALSE);
+    $config = $this->addCache($this->prophesize(Config::class));
+    $this->config = $config->get('group_manager_full_access')->willReturn(FALSE);
 
     $config_factory = $this->prophesize(ConfigFactory::class);
-    $config_factory->get('og.settings')->willReturn($this->config);
+    $config_factory->get('og.settings')->willReturn($config);
 
     $this->user = $this->prophesize(AccountInterface::class);
     $this->user->isAuthenticated()->willReturn(TRUE);
@@ -66,7 +72,7 @@ class OgAccessTestBase extends UnitTestCase {
     $this->user->hasPermission(OgAccess::ADMINISTER_GROUP_PERMISSION)->willReturn(FALSE);
 
     $container = new ContainerBuilder();
-    $container->set('og.group.manager', $this->groupManager->reveal());
+    $container->set('og.group_manager', $this->groupManager->reveal());
     $container->set('cache_contexts_manager', $cache_contexts_manager->reveal());
     $container->set('config.factory', $config_factory->reveal());
     $container->set('module_handler', $this->prophesize(ModuleHandlerInterface::class)->reveal());

@@ -7,7 +7,7 @@
 
 namespace Drupal\Tests\og\Unit;
 
-use Drupal\og\GroupManager;
+use Drupal\og\GroupMap;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -214,14 +214,14 @@ class GroupManagerTest extends UnitTestCase {
   /**
    * Creates a group manager instance with a mock config factory.
    *
-   * @return \Drupal\og\GroupManager
+   * @return \Drupal\og\GroupMap
    */
   protected function createGroupManager() {
     $this->configFactoryProphecy->get('og.settings')
       ->willReturn($this->configProphecy->reveal())
       ->shouldBeCalled();
 
-    return new GroupManager($this->configFactoryProphecy->reveal());
+    return new GroupMap($this->configFactoryProphecy->reveal());
   }
 
 }

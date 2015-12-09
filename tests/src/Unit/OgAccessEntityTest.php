@@ -5,13 +5,11 @@
  * Contains \Drupal\Tests\og\Unit\OgAccessEntity.
  */
 
-
 namespace Drupal\Tests\og\Unit;
+
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
-use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\og\GroupRepository;
 use Drupal\og\OgAccess;
 
 /**
@@ -31,13 +29,6 @@ class OgAccessEntityTest extends OgAccessTestBase  {
       define('OG_STATE_ACTIVE', 1);
     }
 
-    $field_definition = $this->prophesize(FieldDefinitionInterface::class);
-    $field_definition->getType()->willReturn('og_membership_reference');
-    $field_definition->getFieldStorageDefinition()
-      ->willReturn($this->prophesize(FieldStorageDefinitionInterface::class)->reveal());
-    $field_definition->getSetting("handler_settings")->willReturn([]);
-    $field_definition->getName()->willReturn($this->randomMachineName());
-
     $entity_type_id = $this->randomMachineName();
     $bundle = $this->randomMachineName();
     $entity_id = mt_rand(20, 30);
@@ -55,9 +46,10 @@ class OgAccessEntityTest extends OgAccessTestBase  {
 
     $this->groupManager->isGroup($entity_type_id, $bundle)->willReturn(FALSE);
 
-    $entity_manager = $this->prophesize(EntityManagerInterface::class);
-    $entity_manager->getFieldDefinitions($entity_type_id, $bundle)->willReturn([$field_definition->reveal()]);
-    \Drupal::getContainer()->set('entity.manager', $entity_manager->reveal());
+    $group_repository = $this->prophesize(GroupRepository::class);
+    $group_repository->getEntityGroups($this->entity, [OG_STATE_ACTIVE], NULL)->willReturn([[$this->groupEntity()->reveal()]]);
+    $group_repository->getAllGroupAudienceFields($entity_type_id, $bundle, NULL, NULL)->willReturn(['some fields we did not mock']);
+    \Drupal::getContainer()->set('og.group_repository', $group_repository->reveal());
 
     $r = new \ReflectionClass('Drupal\og\Og');
     $reflection_property = $r->getProperty('entityGroupCache');
