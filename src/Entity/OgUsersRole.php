@@ -41,56 +41,6 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
   protected $rid;
 
   /**
-   * @var Integer
-   *
-   * The group id.
-   */
-  protected $gid;
-
-  /**
-   * @var String
-   *
-   * The group type.
-   */
-  protected $groupType;
-
-  /**
-   * @param mixed $gid
-   *
-   * @return $this
-   */
-  public function setGid($gid) {
-    $this->set('gid', $gid);
-
-    return $this;
-  }
-
-  /**
-   * @return mixed
-   */
-  public function getGid() {
-    return $this->get('gid')->value;
-  }
-
-  /**
-   * @param mixed $groupType
-   *
-   * @return $this
-   */
-  public function setGroupType($groupType) {
-    $this->set('group_type', $groupType);
-
-    return $this;
-  }
-
-  /**
-   * @return mixed
-   */
-  public function getGroupType() {
-    return $this->get('group_type')->value;
-  }
-
-  /**
    * @param mixed $rid
    *
    * @return $this
@@ -146,14 +96,6 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
       ->setLabel(t('OG role'))
       ->setDescription(t('The OG role entity.'))
       ->setSetting('target_type', 'og_role');
-
-    $fields['gid'] = BaseFieldDefinition::create('integer')
-      ->setLabel(t('Group ID'))
-      ->setDescription(t("The group's unique ID."));
-
-    $fields['group_type'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Group type'))
-      ->setDescription(t("The group's entity type."));
 
     return $fields;
   }

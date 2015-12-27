@@ -355,6 +355,15 @@ class Og {
   }
 
   /**
+   * Return the og roles handler instance.
+   *
+   * @return OgRolesHandler
+   */
+  public static function rolesHandler() {
+    return \Drupal::service('og.roles');
+  }
+
+  /**
    * Invalidate cache.
    *
    * @param $group_ids
