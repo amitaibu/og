@@ -44,6 +44,8 @@ class OgRoleTest extends KernelTestBase {
       ->grantPermission('administer group')
       ->save();
 
+    $this->assertNotEmpty(OgRole::load('content_editor'), 'The role was created with the expected ID.');
+
     // Checking creation of the role.
     $this->assertEquals($og_role->getPermissions(), ['administer group']);
 
