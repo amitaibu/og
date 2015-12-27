@@ -6,6 +6,7 @@
  */
 namespace Drupal\og\Entity;
 
+use Drupal\Core\Config\ConfigValueException;
 use Drupal\og\OgRoleInterface;
 use Drupal\user\Entity\Role;
 
@@ -148,7 +149,16 @@ class OgRole extends Role implements OgRoleInterface {
    */
   public function save() {
 
-    if ($this->isNew() && !empty($this->group_type) && !empty($this->group_bundle)) {
+    if ($this->isNew()) {
+
+      if (empty($this->group_type)) {
+        throw new ConfigValueException('The group type can not be empty.');
+      }
+
+      if (empty($this->group_bundle)) {
+        throw new ConfigValueException('The group bundle can not be empty.');
+      }
+
       // When assigning a role to group we need to add a prefix to the ID in
       // order to prevent duplicate IDs.
       $prefix = $this->group_type . '-' . $this->group_bundle . '-';
