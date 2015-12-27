@@ -148,7 +148,7 @@ class OgRole extends Role implements OgRoleInterface {
    */
   public function save() {
 
-    if ($this->isNew()) {
+    if ($this->isNew() && !empty($this->group_type) && !empty($this->group_bundle)) {
       // When assigning a role to group we need to add a prefix to the ID in
       // order to prevent duplicate IDs.
       $prefix = $this->group_type . '-' . $this->group_bundle . '-';
