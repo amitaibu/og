@@ -8,3 +8,5 @@ services:
   og.permissions:
     class: Drupal\og\OgPermissionHandler
     arguments: ['@module_handler', '@string_translation', '@controller_resolver']
+  og.roles:
+    class: Drupal\og\OgRolesStorage

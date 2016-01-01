@@ -15,7 +15,7 @@ use Drupal\user\Entity\User;
 
 /**
  * @ContentEntityType(
- *   id = "os_users_role",
+ *   id = "og_users_role",
  *   label = @Translation("OG users role"),
  *   module = "og",
  *   base_table = "og_users_roles",
@@ -41,56 +41,6 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
   protected $rid;
 
   /**
-   * @var Integer
-   *
-   * The group id.
-   */
-  protected $gid;
-
-  /**
-   * @var String
-   *
-   * The group type.
-   */
-  protected $groupType;
-
-  /**
-   * @param mixed $gid
-   *
-   * @return $this
-   */
-  public function setGid($gid) {
-    $this->set('gid', $gid);
-
-    return $this;
-  }
-
-  /**
-   * @return mixed
-   */
-  public function getGid() {
-    return $this->get('gid')->value;
-  }
-
-  /**
-   * @param mixed $groupType
-   *
-   * @return $this
-   */
-  public function setGroupType($groupType) {
-    $this->set('group_type', $groupType);
-
-    return $this;
-  }
-
-  /**
-   * @return mixed
-   */
-  public function getGroupType() {
-    return $this->get('group_type')->value;
-  }
-
-  /**
    * @param mixed $rid
    *
    * @return $this
@@ -105,7 +55,7 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
    * @return mixed
    */
   public function getRid() {
-    return $this->get('rid')->value;
+    return $this->get('rid')->target_id;
   }
 
   /**
@@ -123,7 +73,7 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
    * @return mixed
    */
   public function getUid() {
-    return $this->get('uid')->value;
+    return $this->get('uid')->target_id;
   }
 
   /**
@@ -139,21 +89,15 @@ class OgUsersRole extends ContentEntityBase implements ContentEntityInterface {
 
     $fields['uid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('User'))
+      ->setRequired(TRUE)
       ->setDescription(t("The user's role object."))
       ->setSetting('target_type', 'user');
 
     $fields['rid'] = BaseFieldDefinition::create('entity_reference')
       ->setLabel(t('OG role'))
+      ->setRequired(TRUE)
       ->setDescription(t('The OG role entity.'))
       ->setSetting('target_type', 'og_role');
-
-    $fields['gid'] = BaseFieldDefinition::create('integer')
-      ->setLabel(t('Group ID'))
-      ->setDescription(t("The group's unique ID."));
-
-    $fields['group_type'] = BaseFieldDefinition::create('string')
-      ->setLabel(t('Group type'))
-      ->setDescription(t("The group's entity type."));
 
     return $fields;
   }
