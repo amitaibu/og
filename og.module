@@ -79,6 +79,7 @@ function og_entity_field_access($operation, FieldDefinitionInterface $field_defi
  * Implements hook_entity_access().
  */
 function og_entity_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  return;
   // We only care about content entities.
   if (!$entity instanceof ContentEntityInterface) {
     return AccessResult::neutral();
@@ -124,6 +125,7 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
  * Implements hook_entity_create_access().
  */
 function og_entity_create_access(AccountInterface $account, array $context, $bundle) {
+  return;
   // @todo: Remove when https://www.drupal.org/node/2627852 lands.
   if (empty($context['entity_type_id'])) {
     return AccessResult::neutral();
