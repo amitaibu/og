@@ -64,7 +64,25 @@ class OgMembershipReferenceItemList extends EntityReferenceFieldItemList {
   /**
    * {@inheritdoc}
    */
+  public function preSave() {
+    parent::preSave();
+
+    if ($this->getEntity()->getEntityTypeId() != 'user') {
+      return;
+    }
+
+    dpm($this->getEntity());
+
+    $this->createOgMembership(1);
+
+    $this->setValue([]);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function postSave($update) {
+    return;
     parent::postSave($update);
 
     $group_ids = [];
@@ -113,6 +131,7 @@ class OgMembershipReferenceItemList extends EntityReferenceFieldItemList {
    * {@inheritdoc}
    */
   public function referencedEntities() {
+    return;
     // Fetch the list of memberships for this field.
     if (!$this->fetched) {
       $this->populateGroupsFromMembershipEntities();
@@ -133,6 +152,7 @@ class OgMembershipReferenceItemList extends EntityReferenceFieldItemList {
    * Populate reference items for active group memberships.
    */
   protected function populateGroupsFromMembershipEntities() {
+    return;
     // Save the current list.
     $old_list = [];
     foreach ($this->list as $item) {

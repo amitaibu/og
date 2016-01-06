@@ -30,7 +30,6 @@ class AudienceField extends OgFieldBase implements OgFieldsInterface {
   public function getFieldStorageConfigBaseDefinition(array $values = array()) {
     $values = [
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-      'custom_storage' => TRUE,
       'settings' => [
         'handler' => 'og',
         'handler_settings' => [
@@ -56,7 +55,6 @@ class AudienceField extends OgFieldBase implements OgFieldsInterface {
     ];
 
     return parent::getFieldConfigBaseDefinition($values);
-
   }
 
   /**
