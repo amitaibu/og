@@ -69,7 +69,6 @@ class OgSelection extends DefaultSelection {
     // bundle defined as group.
     
     $query = $this->getSelectionHandler()->buildEntityQuery($match, $match_operator);
-    
     $target_type = $this->configuration['target_type'];
     $entityDefinition = \Drupal::entityTypeManager()->getDefinition($target_type);
 
