@@ -8,7 +8,7 @@
 namespace Drupal\Tests\og\Unit;
 
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
@@ -44,9 +44,9 @@ class OgAccessEntityTestBase extends OgAccessTestBase {
 
     $this->groupManager->isGroup($entity_type_id, $bundle)->willReturn(FALSE);
 
-    $entity_manager = $this->prophesize(EntityManagerInterface::class);
-    $entity_manager->getFieldDefinitions($entity_type_id, $bundle)->willReturn([$field_definition->reveal()]);
-    \Drupal::getContainer()->set('entity.manager', $entity_manager->reveal());
+    $entity_field_manager = $this->prophesize(EntityFieldManagerInterface::class);
+    $entity_field_manager->getFieldDefinitions($entity_type_id, $bundle)->willReturn([$field_definition->reveal()]);
+    \Drupal::getContainer()->set('entity_field.manager', $entity_field_manager->reveal());
 
     // Mock the results of Og::getEntityGroups().
     $r = new \ReflectionClass('Drupal\og\Og');
