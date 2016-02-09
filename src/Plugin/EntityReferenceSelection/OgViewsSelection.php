@@ -27,6 +27,9 @@ use Drupal\og\Og;
  *   group = "og",
  *   weight = 1
  * )
+ * 
+ * @todo: Make this implement an OgSelectionProxy interface and update relevant
+ * documentation.
  */
 class OgViewsSelection extends ViewsSelection {
 
