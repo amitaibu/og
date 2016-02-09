@@ -14,7 +14,8 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\og\Plugin\EntityReferenceSelection\OgSelection;
+use Drupal\og\Plugin\EntityReferenceSelection\OgDefaultSelection;
+use Drupal\Component\Plugin\Exception\PluginException;
 
 /**
  * A static helper class for OG.
@@ -444,7 +445,7 @@ class Og {
    * @param array $options
    *   Overriding the default options of the selection handler.
    *
-   * @return OgSelection
+   * @return OgDefaultSelection
    * @throws \Exception
    */
   public static function getSelectionHandler(FieldDefinitionInterface $field_definition, array $options = []) {
@@ -464,7 +465,23 @@ class Og {
     // Deep merge the handler settings.
     $options['handler_settings'] = NestedArray::mergeDeep($field_definition->getSetting('handler_settings'), $options['handler_settings']);
 
-    return \Drupal::service('plugin.manager.entity_reference_selection')->createInstance('og:default', $options);
+    /* @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManagerInterface $selection_plugin_manager */
+    $selection_plugin_manager = \Drupal::service('plugin.manager.entity_reference_selection');
+
+    // Find our which class we should use.
+    $original_handler = $selection_plugin_manager->getInstance($options);
+    if (is_subclass_of($original_handler, '\Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection')) {
+      $plugin_id = 'og:default';
+    }
+    elseif (is_subclass_of($original_handler, '\Drupal\views\Plugin\EntityReferenceSelection\ViewsSelection')) {
+      $plugin_id = 'og:views';
+    }
+    else {
+      // @todo: Create our own exception for this?
+      throw new PluginException(sprintf("OG proxy plugin for plugin ID '%s' was not found.", $original_handler->getPluginId()));
+    }
+
+    return $selection_plugin_manager->createInstance($plugin_id, $options);
   }
 
 }
