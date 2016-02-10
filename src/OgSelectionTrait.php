@@ -30,9 +30,11 @@ trait OgSelectionTrait {
     if (!isset($this->selectionHandler)) {
       $options = [
         'target_type' => $this->configuration['target_type'],
-        'handler' => $this->configuration['handler_settings']['original_handler'],
         'handler_settings' => $this->configuration['handler_settings'],
       ];
+      if (isset($this->configuration['handler_settings']['original_handler'])) {
+        $options['handler'] = $this->configuration['handler_settings']['original_handler'];
+      }
       $this->selectionHandler = \Drupal::service('plugin.manager.entity_reference_selection')->getInstance($options);
     }
     return $this->selectionHandler;

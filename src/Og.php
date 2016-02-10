@@ -465,7 +465,6 @@ class Og {
     // Deep merge the handler settings.
     $options['handler_settings'] = NestedArray::mergeDeep($field_definition->getSetting('handler_settings'), $options['handler_settings']);
 
-
     // Find our which class we should use.
     /* @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManagerInterface $selection_plugin_manager */
     $selection_plugin_manager = \Drupal::service('plugin.manager.entity_reference_selection');
