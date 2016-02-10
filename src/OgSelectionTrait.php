@@ -15,17 +15,27 @@ use Drupal\user\Entity\User;
 trait OgSelectionTrait {
 
   /**
+   * The original selection handler for the field.
+   *
+   * @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface
+   */
+  protected $selectionHandler;
+
+  /**
    * Get the selection handler of the field.
    *
    * @return \Drupal\Core\Entity\EntityReferenceSelection\SelectionInterface
    */
   public function getSelectionHandler() {
-    $options = [
-      'target_type' => $this->configuration['target_type'],
-      'handler' => $this->configuration['handler'],
-      'handler_settings' => $this->configuration['handler_settings'],
-    ];
-    return \Drupal::service('plugin.manager.entity_reference_selection')->getInstance($options);
+    if (!isset($this->selectionHandler)) {
+      $options = [
+        'target_type' => $this->configuration['target_type'],
+        'handler' => $this->configuration['handler_settings']['original_handler'],
+        'handler_settings' => $this->configuration['handler_settings'],
+      ];
+      $this->selectionHandler = \Drupal::service('plugin.manager.entity_reference_selection')->getInstance($options);
+    }
+    return $this->selectionHandler;
   }
 
   /**

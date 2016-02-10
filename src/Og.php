@@ -7,15 +7,15 @@
 
 namespace Drupal\og;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
+use Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
-use Drupal\og\Plugin\EntityReferenceSelection\OgDefaultSelection;
 use Drupal\Component\Plugin\Exception\PluginException;
+use Drupal\views\Plugin\EntityReferenceSelection\ViewsSelection;
 
 /**
  * A static helper class for OG.
@@ -473,10 +473,10 @@ class Og {
 
     // See if we have a suitable class for this.
     // @todo: Find a better way to do this?
-    if (is_subclass_of($original_handler, '\Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection')) {
+    if ($original_handler instanceof DefaultSelection) {
       $plugin_id = 'og:default';
     }
-    elseif (is_subclass_of($original_handler, '\Drupal\views\Plugin\EntityReferenceSelection\ViewsSelection')) {
+    elseif ($original_handler instanceof ViewsSelection) {
       $plugin_id = 'og:views';
     }
     else {

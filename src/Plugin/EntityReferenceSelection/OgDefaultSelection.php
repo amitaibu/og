@@ -12,7 +12,8 @@ use Drupal\og\OgSelectionTrait;
 use Drupal\og\Og;
 
 /**
- * Provide default OG selection handler.
+ * Provide a proxy OG selection handler for
+ * \Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection.
  *
  * Note that the id is correctly defined as "og:default" and not the other way
  * around, as seen in most other default selection handler (e.g. "default:node")
@@ -27,9 +28,6 @@ use Drupal\og\Og;
  *   group = "og",
  *   weight = 1
  * )
- *
- * @todo: Make this implement an OgSelectionProxy interface and update relevant
- * documentation.
  */
 class OgDefaultSelection extends DefaultSelection {
 
@@ -55,7 +53,7 @@ class OgDefaultSelection extends DefaultSelection {
     // the default selection handler of the entity, which the field reference
     // to, and add another logic to the query object i.e. check if the entities
     // bundle defined as group.
-    
+
     $query = $this->getSelectionHandler()->buildEntityQuery($match, $match_operator);
     $target_type = $this->configuration['target_type'];
     $entityDefinition = \Drupal::entityTypeManager()->getDefinition($target_type);
