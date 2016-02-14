@@ -13,6 +13,7 @@ use Drupal\Component\Utility\Unicode;
 use Drupal\og\Entity\OgMembership;
 use Drupal\og\Og;
 use Drupal\og\OgMembershipInterface;
+use Drupal\og\OgTestTrait;
 use Drupal\user\Entity\User;
 
 /**
@@ -21,6 +22,8 @@ use Drupal\user\Entity\User;
  * @group og
  */
 class GetEntityGroupsTest extends KernelTestBase {
+
+  use OgTestTrait;
 
   /**
    * {@inheritdoc}
@@ -53,32 +56,22 @@ class GetEntityGroupsTest extends KernelTestBase {
   protected $group2;
 
   /**
-   * The machine name of the group node type.
-   *
-   * @var string
-   */
-  protected $groupBundle;
-
-  /**
-   * The machine name of the group content node type.
-   *
-   * @var string
-   */
-  protected $groupContentBundle;
-
-  /**
    * {@inheritdoc}
    */
   protected function setUp() {
     parent::setUp();
 
-    $this->installConfig(['og']);
-    $this->installEntitySchema('og_membership');
-    $this->installEntitySchema('user');
-    $this->installEntitySchema('entity_test');
-    $this->installSchema('system', 'sequences');
+    // todo: check why this won't work with static variable.
+    $this->schemas = [
+      'config' => ['og'],
+      'entity' => ['og_membership', 'user', 'entity_test'],
+      'modules' => ['system' => ['sequences']],
+    ];
 
-    $this->groupBundle = Unicode::strtolower($this->randomMachineName());
+    $this
+      ->installSchemas()
+      ->createGroupBundle('entity_test');
+
     $this->groupContentBundle = Unicode::strtolower($this->randomMachineName());
 
     // Create users.
@@ -90,9 +83,6 @@ class GetEntityGroupsTest extends KernelTestBase {
 
     $this->user3 = User::create(['name' => $this->randomString()]);
     $this->user3->save();
-
-    // Define the group content as group.
-    Og::groupManager()->addGroup('entity_test', $this->groupBundle);
 
     // Create a group and associate with user 1.
     $this->group1 = EntityTest::create([
