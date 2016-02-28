@@ -38,8 +38,13 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $parent = parent::formElement($items, $delta, $element, $form, $form_state);
-    // todo: fix the definition in th UI level.
-    $parent['target_id']['#selection_handler'] = 'og:default';
+    $options = array(
+      'target_type' => $parent['target_id']['#target_type'],
+      'handler' => $parent['target_id']['#selection_handler'],
+      'handler_settings' => $parent['target_id']['#selection_settings'],
+    );
+    $parent['target_id']['#selection_settings']['original_handler'] = $parent['target_id']['#selection_handler'];
+    $parent['target_id']['#selection_handler'] = Og::getSelectionHandler($this->fieldDefinition, $options)->getPluginId();
     $parent['target_id']['#selection_settings']['field_mode'] = 'default';
 
     return $parent;

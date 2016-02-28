@@ -2,18 +2,18 @@
 
 /**
  * @file
- * Contains \Drupal\og\Plugin\EntityReferenceSelection\OgSelection.
+ * Contains \Drupal\og\Plugin\EntityReferenceSelection\OgDefaultSelection.
  */
 
 namespace Drupal\og\Plugin\EntityReferenceSelection;
 
-use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection;
-use Drupal\user\Entity\User;
+use Drupal\og\OgSelectionTrait;
 use Drupal\og\Og;
 
 /**
- * Provide default OG selection handler.
+ * Provide a proxy OG selection handler for
+ * \Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection.
  *
  * Note that the id is correctly defined as "og:default" and not the other way
  * around, as seen in most other default selection handler (e.g. "default:node")
@@ -29,23 +29,9 @@ use Drupal\og\Og;
  *   weight = 1
  * )
  */
-class OgSelection extends DefaultSelection {
+class OgDefaultSelection extends DefaultSelection {
 
-  /**
-   * Get the selection handler of the field.
-   *
-   * @return DefaultSelection
-   */
-  public function getSelectionHandler() {
-    $options = [
-      'target_type' => $this->configuration['target_type'],
-      // 'handler' key intentionally absent as we want the selection manager to
-      // choose the best option.
-      // @see \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager::getInstance()
-      'handler_settings' => $this->configuration['handler_settings'],
-    ];
-    return \Drupal::service('plugin.manager.entity_reference_selection')->getInstance($options);
-  }
+  use OgSelectionTrait;
 
   /**
    * Overrides the basic entity query object. Return only group in the matching
@@ -67,7 +53,7 @@ class OgSelection extends DefaultSelection {
     // the default selection handler of the entity, which the field reference
     // to, and add another logic to the query object i.e. check if the entities
     // bundle defined as group.
-    
+
     $query = $this->getSelectionHandler()->buildEntityQuery($match, $match_operator);
     $target_type = $this->configuration['target_type'];
     $entityDefinition = \Drupal::entityTypeManager()->getDefinition($target_type);
@@ -85,21 +71,18 @@ class OgSelection extends DefaultSelection {
     $identifier_key = $entityDefinition->getKey('id');
 
     $ids = [];
+    foreach ($user_groups as $delta => $group) {
+      $ids[] = $group->id();
+    }
+
     if ($this->configuration['handler_settings']['field_mode'] == 'admin') {
       // Don't include the groups, the user doesn't have create permission.
-      foreach ($user_groups as $delta => $group) {
-        $ids[] = $group->id();
-      }
-
       if ($ids) {
         $query->condition($identifier_key, $ids, 'NOT IN');
       }
     }
     else {
       // Determine which groups should be selectable.
-      foreach ($user_groups as $group) {
-        $ids[] = $group->id();
-      }
       if ($ids) {
         $query->condition($identifier_key, $ids, 'IN');
       }
@@ -111,15 +94,6 @@ class OgSelection extends DefaultSelection {
     }
 
     return $query;
-  }
-
-  /**
-   *
-   * @return ContentEntityInterface[]
-   */
-  protected function getUserGroups() {
-    $other_groups = Og::getEntityGroups(User::load($this->currentUser->id()));
-    return isset($other_groups[$this->configuration['target_type']]) ? $other_groups[$this->configuration['target_type']] : [];
   }
 
 }
