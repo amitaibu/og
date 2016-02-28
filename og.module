@@ -112,6 +112,26 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
   if ($entity_type_id == 'node') {
     $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
 
+    // Get the user's group membership.
+    $og_audience_field = $entity->get(\Drupal\og\OgGroupAudienceHelper::DEFAULT_FIELD);
+    // todo handle when we have more than a single value in the field.
+    $membership_ids = \Drupal::entityQuery('og_membership')
+      ->condition('entity_type', $og_audience_field->getFieldDefinition()->getSetting('target_type'))
+      ->condition('entity_id', $og_audience_field->target_id)
+      ->condition('uid', $account->id())
+      ->execute();
+
+    /** @var OgMembership[] $memberships */
+    $memberships = OgMembership::loadMultiple($membership_ids);
+
+    foreach ($memberships as $membership) {
+      $permission = $account->id() == $entity->getOwnerId() ? $operation . ' own ' . $entity->bundle() . ' content' : $operation . ' any ' . $entity->bundle() . ' content';
+
+      if ($membership->hasPermission($permission)) {
+        return AccessResult::allowed();
+      }
+    }
+
     // Otherwise, ignore or deny based on whether strict node access is set.
     return AccessResult::forbiddenIf($node_access_strict);
   }
@@ -149,7 +169,8 @@ function og_entity_create_access(AccountInterface $account, array $context, $bun
     }
   }
 
-
+  // todo try to determine the group context after og_context or entity
+  // reference prepopulate will be ported.
 
 
   // We can't check if user has create permissions, as there is no group
