@@ -112,6 +112,7 @@ class OgEntityAccessTest extends KernelTestBase {
       'uid' => $this->user->id(),
       'type' => $this->groupBundle,
     ]);
+    $this->nodeGroup->save();
     Og::groupManager()->addGroup('node', $this->groupBundle);
 
     $membership = OgMembership::create();
@@ -142,7 +143,7 @@ class OgEntityAccessTest extends KernelTestBase {
       'uid' => $this->user->id(),
       'type' => $this->nodeGroupBundle,
     ]);
-    $this->nodeGroupContent[0]->set(OgGroupAudienceHelper::DEFAULT_FIELD, $this->nodeGroup->id());
+    $this->nodeGroupContent[0]->set(OgGroupAudienceHelper::DEFAULT_FIELD, [$this->nodeGroup->id()]);
     $this->nodeGroupContent[0]->save();
 
     $this->nodeGroupContent[] = Node::create([
@@ -159,7 +160,7 @@ class OgEntityAccessTest extends KernelTestBase {
    */
   public function testNodeGroupPermission() {
     $this->assertFalse($this->nodeGroupContent[0]->access('edit', $this->user));
-    $this->ogRole->grantPermission('edit own ' . $this->groupBundle . ' content')->save();
+    $this->ogRole->grantPermission('edit own ' . $this->nodeGroupBundle . ' content')->save();
     $this->assertTrue($this->nodeGroupContent[0]->access('edit', $this->user));
   }
 
