@@ -12,6 +12,7 @@ use Drupal\og\Entity\OgRoleInterface;
 use Drupal\og\Og;
 use Drupal\og\OgAccess;
 use Drupal\og\Entity\OgMembership;
+use Drupal\og\OgGroupAudienceHelper;
 use Drupal\og\OgMembershipInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -113,22 +114,30 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
     $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
 
     // Get the user's group membership.
-    $og_audience_field = $entity->get(\Drupal\og\OgGroupAudienceHelper::DEFAULT_FIELD);
-    // todo handle when we have more than a single value in the field.
-    $membership_ids = \Drupal::entityQuery('og_membership')
-      ->condition('entity_type', $og_audience_field->getFieldDefinition()->getSetting('target_type'))
-      ->condition('entity_id', $og_audience_field->target_id)
-      ->condition('uid', $account->id())
-      ->execute();
+    $fields = array_keys(Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle()));
 
-    /** @var OgMembership[] $memberships */
-    $memberships = OgMembership::loadMultiple($membership_ids);
+    $gids = [];
+    foreach ($fields as $field) {
+      $og_audience_field = $entity->get($field);
 
-    foreach ($memberships as $membership) {
-      $permission = $account->id() == $entity->getOwnerId() ? $operation . ' own ' . $entity->bundle() . ' content' : $operation . ' any ' . $entity->bundle() . ' content';
+      $gids += array_map(function (EntityInterface $group) {
+        return $group->id();
+      }, $og_audience_field->referencedEntities());
 
-      if ($membership->hasPermission($permission)) {
-        return AccessResult::allowed();
+      $membership_ids = \Drupal::entityQuery('og_membership')
+        ->condition('entity_type', $og_audience_field->getFieldDefinition()->getSetting('target_type'))
+        ->condition('entity_id', $gids, 'IN')
+        ->condition('uid', $account->id())
+        ->execute();
+
+      /** @var OgMembership[] $memberships */
+      $memberships = OgMembership::loadMultiple($membership_ids);
+
+      foreach ($memberships as $membership) {
+        $permission = $account->id() == $entity->getOwnerId() ? $operation . ' own ' . $entity->bundle() . ' content' : $operation . ' any ' . $entity->bundle() . ' content';
+        if ($membership->hasPermission($permission)) {
+          return AccessResult::allowed();
+        }
       }
     }
 
@@ -143,11 +152,6 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
  * Implements hook_entity_create_access().
  */
 function og_entity_create_access(AccountInterface $account, array $context, $bundle) {
-  // @todo: Remove when https://www.drupal.org/node/2627852 lands.
-  if (empty($context['entity_type_id'])) {
-    return AccessResult::neutral();
-  }
-
   $entity_type_id = $context['entity_type_id'];
 
   if (!Og::isGroupContent($entity_type_id, $bundle)) {

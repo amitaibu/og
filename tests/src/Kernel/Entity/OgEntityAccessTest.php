@@ -160,7 +160,7 @@ class OgEntityAccessTest extends KernelTestBase {
    */
   public function testNodeGroupPermission() {
     $this->assertFalse((bool) $this->nodeGroupContent[0]->access('edit', $this->user));
-    $this->ogRole->grantPermission('edit any ' . $this->nodeGroupContent[1]->bundle() . ' content')->save();
+    $this->ogRole->grantPermission('edit own ' . $this->nodeGroupContent[1]->bundle() . ' content')->save();
     $this->assertTrue($this->nodeGroupContent[0]->access('edit', $this->user));
   }
 
