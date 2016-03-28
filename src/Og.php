@@ -7,7 +7,6 @@
 
 namespace Drupal\og;
 
-use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -119,9 +118,9 @@ class Og {
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to get groups for.
-   * @param $states
+   * @param array $states
    *   (optional) Array with the state to return. Defaults to active.
-   * @param $field_name
+   * @param string $field_name
    *   (optional) The field name associated with the group.
    *
    * @return array
@@ -395,10 +394,10 @@ class Og {
    * @param $group_ids
    *   Array with group IDs that their cache should be invalidated.
    */
-  public static function invalidateCache($group_ids = array()) {
+  public static function invalidateCache($group_ids = []) {
     // @todo We should not be using drupal_static() review and remove.
     // Reset static cache.
-    $caches = array(
+    $caches = [
       'og_user_access',
       'og_user_access_alter',
       'og_role_permissions',
@@ -408,7 +407,7 @@ class Og {
       'og_get_membership',
       'og_get_field_og_membership_properties',
       'og_get_user_roles',
-    );
+    ];
 
     foreach ($caches as $cache) {
       drupal_static_reset($cache);
