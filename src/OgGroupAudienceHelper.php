@@ -62,7 +62,7 @@ class OgGroupAudienceHelper {
    *
    * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   The group content to find a matching group audience field for.
-   * @param string $group_type
+   * @param string $group_type_id
    *   The group type that should be referenced by the group audience field.
    * @param string $group_bundle
    *   The group bundle that should be referenced by the group audience field.
@@ -74,7 +74,7 @@ class OgGroupAudienceHelper {
    *   The name of the group audience field, or NULL if no matching field was
    *   found.
    */
-  public static function getMatchingField(ContentEntityInterface $entity, $group_type, $group_bundle, $check_access = TRUE) {
+  public static function getMatchingField(ContentEntityInterface $entity, $group_type_id, $group_bundle, $check_access = TRUE) {
     $fields = Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle());
 
     // Bail out if there are no group audience fields.
@@ -85,7 +85,7 @@ class OgGroupAudienceHelper {
     foreach ($fields as $field_name => $field) {
       $handler_settings = $field->getSetting('handler_settings');
 
-      if ($field->getSetting('target_type') !== $group_type) {
+      if ($field->getSetting('target_type') !== $group_type_id) {
         // Group type doesn't match.
         continue;
       }

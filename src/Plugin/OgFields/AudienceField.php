@@ -11,6 +11,7 @@ use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\og\OgFieldBase;
 use Drupal\og\OgFieldsInterface;
 use Drupal\og\OgGroupAudienceHelper;
+use Drupal\og\OgMembershipInterface;
 
 /**
  * Determine to which groups this group content is assigned to.
@@ -29,16 +30,11 @@ class AudienceField extends OgFieldBase implements OgFieldsInterface {
   public function getFieldStorageConfigBaseDefinition(array $values = array()) {
     $values = [
       'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-      'custom_storage' => TRUE,
+      'custom_storage' => $this->getEntityType() == 'user',
       'settings' => [
-        'handler' => 'og',
-        'handler_settings' => [
-          'target_bundles' => [],
-          'membership_type' => OG_MEMBERSHIP_TYPE_DEFAULT,
-        ],
         'target_type' => $this->getEntityType(),
       ],
-      'type' => 'og_membership_reference',
+      'type' => $this->getEntityType() == 'user' ? 'og_membership_reference' : 'og_standard_reference',
     ];
 
     return parent::getFieldStorageConfigBaseDefinition($values);
@@ -52,6 +48,10 @@ class AudienceField extends OgFieldBase implements OgFieldsInterface {
       'description' => $this->t('OG group audience reference field.'),
       'display_label' => TRUE,
       'label' => $this->t('Groups audience'),
+      'settings' => [
+        'handler' => 'og',
+        'handler_settings' => [],
+      ],
     ];
 
     return parent::getFieldConfigBaseDefinition($values);

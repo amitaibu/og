@@ -7,8 +7,11 @@
 
 namespace Drupal\og;
 
+use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -18,21 +21,6 @@ use Drupal\og\Plugin\EntityReferenceSelection\OgSelection;
  * A static helper class for OG.
  */
 class Og {
-
-  /**
-   * The role name of the group non-member.
-   */
- const ANONYMOUS_ROLE = 'non-member';
-
-  /**
-   * The role name of the group member.
-   */
-  const AUTHENTICATED_ROLE = 'member';
-
-  /**
-   * The role name of the group administrator.
-   */
-  const ADMINISTRATOR_ROLE = 'administrator member';
 
   /**
    * Static cache for groups per entity.
@@ -72,7 +60,7 @@ class Og {
 
     // Get the field definition and add the entity info to it. By doing so
     // we validate the the field can be attached to the entity. For example,
-    // the OG accesss module's field can be attached only to node entities, so
+    // the OG access module's field can be attached only to node entities, so
     // any other entity will throw an exception.
     /** @var \Drupal\og\OgFieldBase $og_field */
     $og_field = static::getFieldBaseDefinition($plugin_id)
@@ -85,7 +73,6 @@ class Og {
       FieldStorageConfig::create($field_storage_config)->save();
     }
 
-
     if (!$field_definition = FieldConfig::loadByName($entity_type, $bundle, $field_name)) {
       $field_config = NestedArray::mergeDeep($og_field->getFieldConfigBaseDefinition(), $settings['field_config']);
 
@@ -95,6 +82,34 @@ class Og {
       // @todo: Verify this is still needed here.
       static::invalidateCache();
     }
+
+    // Make the field visible in the default form display.
+    /** @var EntityFormDisplayInterface $form_display */
+    $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->load("$entity_type.$bundle.default");
+
+    // If not found, create a fresh form display object. This is by design,
+    // configuration entries are only created when an entity form display is
+    // explicitly configured and saved.
+    // @see entity_get_form_display()
+    if (!$form_display) {
+      $form_display = \Drupal::entityTypeManager()->getStorage('entity_form_display')->create([
+        'targetEntityType' => $entity_type,
+        'bundle' => $bundle,
+        'mode' => 'default',
+        'status' => TRUE,
+      ]);
+    }
+
+    $widget = $form_display->getComponent($plugin_id);
+    $widget['type'] = 'og_complex';
+    $widget['settings'] = [
+      'match_operator' => 'CONTAINS',
+      'size' => 60,
+      'placeholder' => '',
+    ];
+
+    $form_display->setComponent($plugin_id, $widget);
+    $form_display->save();
 
     return $field_definition;
   }
@@ -142,8 +157,7 @@ class Og {
 
     static::$entityGroupCache[$identifier] = [];
     $query = \Drupal::entityQuery('og_membership')
-      ->condition('entity_type', $entity_type_id)
-      ->condition('etid', $entity_id);
+      ->condition('uid', $entity_id);
 
     if ($states) {
       $query->condition('state', $states, 'IN');
@@ -162,35 +176,69 @@ class Og {
 
     /** @var \Drupal\og\Entity\OgMembership $membership */
     foreach ($memberships as $membership) {
-      static::$entityGroupCache[$identifier][$membership->getGroupType()][$membership->id()] = $membership->getGroup();
+      static::$entityGroupCache[$identifier][$membership->getGroupEntityType()][$membership->id()] = $membership->getGroup();
     }
 
     return static::$entityGroupCache[$identifier];
   }
 
   /**
-   * Return TRUE if entity belongs to a group.
+   * Return whether a group content belongs to a group.
    *
    * @param \Drupal\Core\Entity\EntityInterface $group
-   *   The group entity to check.
+   *   The group entity.
    * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to get groups for.
+   *   The entity to test the membership for.
    * @param array $states
    *   (optional) Array with the membership states to check the membership.
    *   Defaults to active memberships.
    *
    * @return bool
-   *   TRUE if the entity (e.g. the user) belongs to a group and is not pending
-   *   or blocked.
+   *   TRUE if the entity (e.g. the user or node) belongs to a group with
+   *   a certain state.
    */
   public static function isMember(EntityInterface $group, EntityInterface $entity, $states = [OgMembershipInterface::STATE_ACTIVE]) {
     $groups = static::getEntityGroups($entity, $states);
-    $group_entity_type_id = $group->getEntityTypeId();
+    $entity_type_id = $group->getEntityTypeId();
     // We need to create a map of the group ids as Og::getEntityGroups returns a
     // map of membership_id => group entity for each type.
-    return !empty($groups[$group_entity_type_id]) && in_array($group->id(), array_map(function($group_entity) {
+    return !empty($groups[$entity_type_id]) && in_array($group->id(), array_map(function($group_entity) {
       return $group_entity->id();
-    }, $groups[$group_entity_type_id]));
+    }, $groups[$entity_type_id]));
+  }
+
+  /**
+   * Returns whether an entity belongs to a group with a pending status.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $group
+   *   The group entity.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The group content entity.
+   *
+   * @return bool
+   *   True if the membership is pending.
+   *
+   * @see \Drupal\og\Og::isMember
+   */
+  public static function isMemberPending(EntityInterface $group, EntityInterface $entity) {
+    return static::isMember($group, $entity, [OgMembershipInterface::STATE_PENDING]);
+  }
+
+  /**
+   * Returns whether an entity belongs to a group with a blocked status.
+   *
+   * @param \Drupal\Core\Entity\EntityInterface $group
+   *   The group entity.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   The entity to test the membership for.
+   *
+   * @return bool
+   *   True if the membership is blocked.
+   *
+   * @see \Drupal\og\Og::isMember
+   */
+  public static function isMemberBlocked(EntityInterface $group, EntityInterface $entity) {
+    return static::isMember($group, $entity, [OgMembershipInterface::STATE_BLOCKED]);
   }
 
   /**
@@ -265,7 +313,7 @@ class Og {
    *   TRUE if the field is a group audience type, FALSE otherwise.
    */
   public static function isGroupAudienceField(FieldDefinitionInterface $field_definition) {
-    return $field_definition->getType() === 'og_membership_reference';
+    return in_array($field_definition->getType(), ['og_standard_reference', 'og_membership_reference']);
   }
 
   /**
@@ -288,8 +336,15 @@ class Og {
    */
   public static function getAllGroupAudienceFields($entity_type_id, $bundle, $group_type_id = NULL, $group_bundle = NULL) {
     $return = [];
+    $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
 
-    foreach (\Drupal::entityManager()->getFieldDefinitions($entity_type_id, $bundle) as $field_definition) {
+    if (!$entity_type->isSubclassOf(FieldableEntityInterface::class)) {
+      // This entity type is not fieldable.
+      return [];
+    }
+    $field_definitions = \Drupal::service('entity_field.manager')->getFieldDefinitions($entity_type_id, $bundle);
+
+    foreach ($field_definitions as $field_definition) {
       if (!static::isGroupAudienceField($field_definition)) {
         // Not a group audience field.
         continue;
@@ -364,7 +419,7 @@ class Og {
 
     // Invalidate the entity property cache.
     \Drupal::entityTypeManager()->clearCachedDefinitions();
-    \Drupal::entityManager()->clearCachedFieldDefinitions();
+    \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
     // Let other OG modules know we invalidate cache.
     \Drupal::moduleHandler()->invokeAll('og_invalidate_cache', $group_ids);
@@ -383,7 +438,7 @@ class Og {
    * Gets the default constructor parameters for OG membership.
    */
   public static function membershipDefault() {
-    return ['type' => 'og_membership_type_default'];
+    return ['type' => OgMembershipInterface::TYPE_DEFAULT];
   }
 
 
@@ -411,22 +466,17 @@ class Og {
   /**
    * Get the selection handler for an audience field attached to entity.
    *
-   * @param string $entity_type_id
-   *   The entity type.
-   * @param string $bundle_id
-   *   The bundle name.
-   * @param $field_name
-   *   The field name.
+   * @param \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+   *   The field definition.
    * @param array $options
    *   Overriding the default options of the selection handler.
    *
    * @return OgSelection
    * @throws \Exception
    */
-  public static function getSelectionHandler($entity_type_id, $bundle_id, $field_name, array $options = []) {
-    $field_definition = FieldConfig::loadByName($entity_type_id, $bundle_id, $field_name);
-
+  public static function getSelectionHandler(FieldDefinitionInterface $field_definition, array $options = []) {
     if (!static::isGroupAudienceField($field_definition)) {
+      $field_name = $field_definition->getName();
       throw new \Exception("The field $field_name is not an audience field.");
     }
 

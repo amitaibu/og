@@ -8,6 +8,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\og\Entity\OgRoleInterface;
 use Drupal\og\Og;
 use Drupal\og\OgAccess;
 use Drupal\og\Entity\OgMembership;
@@ -22,16 +23,6 @@ use Drupal\Core\Field\FieldItemListInterface;
 define('OG_DEFAULT_ACCESS_FIELD', 'og_roles_permissions');
 
 /**
- * The default group membership type that is the bundle of group membership.
- */
-define('OG_MEMBERSHIP_TYPE_DEFAULT', 'og_membership_type_default');
-
-/**
- * The name of the user's request field in the default group membership type.
- */
-define('OG_MEMBERSHIP_REQUEST_FIELD', 'og_membership_request');
-
-/**
  * Implements hook_entity_insert().
  */
 function og_entity_insert(EntityInterface $entity) {
@@ -41,12 +32,11 @@ function og_entity_insert(EntityInterface $entity) {
 
   if ($entity instanceof EntityOwnerInterface) {
     // Subscribe the group manager.
-    $membership = OgMembership::create(array('type' => OG_MEMBERSHIP_TYPE_DEFAULT));
+    $membership = OgMembership::create(['type' => OgMembershipInterface::TYPE_DEFAULT]);
     $membership
-      ->setEntityId($entity->getOwnerId())
-      ->setEntityType('user')
-      ->setGid($entity->id())
-      ->setGroupType($entity->getEntityTypeId())
+      ->setUser($entity->getOwnerId())
+      ->setEntityId($entity->id())
+      ->setEntityType($entity->getEntityTypeId())
       ->setFieldName($membership->getFieldName())
       ->save();
   }
@@ -159,12 +149,11 @@ function og_entity_create_access(AccountInterface $account, array $context, $bun
     }
   }
 
-
-
-
   // We can't check if user has create permissions, as there is no group
   // context. However, we can check if there are any groups the user will be
-  // able to select, and if not, we don't allow access.
+  // able to select, and if not, we don't allow access but if there are,
+  // AccessResult::neutral() will be returned in order to not override other
+  // access results.
   // @see \Drupal\og\Plugin\EntityReferenceSelection\OgSelection::buildEntityQuery()
   $required = FALSE;
 
@@ -175,10 +164,10 @@ function og_entity_create_access(AccountInterface $account, array $context, $bun
       continue;
     }
 
-    $handler = Og::getSelectionHandler($entity_type_id, $bundle, $field_definition);
+    $handler = Og::getSelectionHandler($field_definition);
 
     if ($handler->getReferenceableEntities()) {
-      return Accessresult::allowed();
+      return Accessresult::neutral();
     }
 
     // Allow users to create content outside of groups, if none of the
@@ -221,12 +210,12 @@ function _og_og_permission() {
   $perms['update group'] = array(
     'title' => t('Edit group'),
     'description' => t('Edit the group. Note: This permission controls only node entity type groups.'),
-    'default role' => array(Og::ADMINISTRATOR_ROLE),
+    'default role' => array(OgRoleInterface::ADMINISTRATOR),
   );
   $perms['administer group'] = array(
     'title' => t('Administer group'),
     'description' => t('Manage group members and content in the group.'),
-    'default role' => array(Og::ADMINISTRATOR_ROLE),
+    'default role' => array(OgRoleInterface::ADMINISTRATOR),
     'restrict access' => TRUE,
   );
 
@@ -242,7 +231,7 @@ function _og_og_permission() {
  * Implements hook_og_default_roles().
  */
 function _og_og_default_roles() {
-  return array(Og::ADMINISTRATOR_ROLE);
+  return array(OgRoleInterface::ADMINISTRATOR);
 }
 
 /**
@@ -1935,7 +1924,7 @@ function _og_roles($group_type, $bundle, $gid = 0, $force_group = FALSE, $includ
     ->orderBy('rid', 'ASC');
 
   if (!$include_all) {
-    $query->condition('name', array(Og::ANONYMOUS_ROLE, Og::AUTHENTICATED_ROLE), 'NOT IN');
+    $query->condition('name', array(OgRoleInterface::ANONYMOUS, OgRoleInterface::AUTHENTICATED), 'NOT IN');
   }
   $rids = $query
     ->execute()
@@ -1965,8 +1954,8 @@ function _og_get_default_roles($include = TRUE) {
   drupal_alter('og_default_roles', $roles);
 
   if ($include) {
-    array_unshift($roles, Og::AUTHENTICATED_ROLE);
-    array_unshift($roles, Og::ANONYMOUS_ROLE);
+    array_unshift($roles, OgRoleInterface::AUTHENTICATED);
+    array_unshift($roles, OgRoleInterface::ANONYMOUS);
   }
 
   return $roles;
@@ -2044,7 +2033,7 @@ function _og_get_user_roles($group_type, $gid, $uid = NULL, $include = TRUE, $ch
 
 
   if ($include && !$is_blocked) {
-    $role_name = $is_member ? Og::AUTHENTICATED_ROLE : Og::ANONYMOUS_ROLE;
+    $role_name = $is_member ? OgRoleInterface::AUTHENTICATED : OgRoleInterface::ANONYMOUS;
 
     $rids = db_select('og_role', 'ogr')
       ->fields('ogr', array('rid', 'name'))
@@ -2473,7 +2462,7 @@ function _og_get_permissions() {
           // Initialize the roles key, if other modules haven't set it
           // explicetly. This means the permissions can apply to anonymous and
           // authenticated members as-well.
-          'roles' => array(Og::ANONYMOUS_ROLE, Og::AUTHENTICATED_ROLE),
+          'roles' => array(OgRoleInterface::ANONYMOUS, OgRoleInterface::AUTHENTICATED),
           'default role' => array(),
           'module' => $module,
         );
@@ -2592,12 +2581,12 @@ function _og_list_permissions($type) {
       // We allow the create permission only on members, as otherwise we would
       // have to iterate over every single group to decide if the user has
       // permissions for it.
-      $perms["create $type content"]['roles'] = array(Og::AUTHENTICATED_ROLE);
+      $perms["create $type content"]['roles'] = array(OgRoleInterface::AUTHENTICATED);
     }
 
     // Add default permissions.
     foreach ($perms as $key => $value) {
-      $perms[$key]['default role'] = array(Og::AUTHENTICATED_ROLE);
+      $perms[$key]['default role'] = array(OgRoleInterface::AUTHENTICATED);
     }
   }
   return $perms;
