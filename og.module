@@ -529,8 +529,20 @@ function __og_update_entity_fields($entity_type, $entity) {
 
 /**
  * Implements hook_entity_delete().
+ * remove memberships of deleted group entities
  */
 function _og_entity_delete($entity, $entity_type) {
+  if (Og::isGroup($entity->getEntityTypeId(), $entity->bundle())) {
+    $membership_ids = \Drupal::entityQuery('og_membership')
+      ->condition('group_entity_type', $entity->getEntityTypeId())
+      ->condition('group_entity_id', $entity->id())
+      ->execute();
+    foreach (OgMembership::loadMultiple($membership_ids) as $membership) {
+      $membership->delete();
+    }
+  }
+  return;
+  //from d7
   list($id, , $bundle) = entity_extract_ids($entity_type, $entity);
   if (og_is_group($entity_type, $entity)) {
     og_delete_user_roles_by_group($entity_type, $entity);
@@ -2636,3 +2648,4 @@ function _og_get_groups_by_user($account = NULL, $group_type = NULL) {
     return $gids[$group_type];
   }
 }
+
