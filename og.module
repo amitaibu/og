@@ -141,57 +141,6 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
 }
 
 /**
- * Helper function; Determine access of a user to node.
- *
- * Iterate over the user's group membership, and check access to the node.
- */
-function _og_node_access(EntityInterface $entity, $operation, AccountInterface $account) {
-  $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
-
-  // Get all the audience fields.
-  $fields = Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle());
-
-
-  $group_ids = [];
-
-  foreach (array_keys($fields) as $field_name) {
-
-    $og_audience_field = $entity->get($field_name);
-
-    $group_target_type = $og_audience_field->getFieldDefinition()->getSetting('target_type');
-
-    // Initialize the key in case it doesn't exist.
-    $group_ids += [$group_target_type => []];
-
-    $group_ids[$group_target_type] += array_map(function (EntityInterface $group) {
-      return $group->id();
-    }, $og_audience_field->referencedEntities());
-  }
-
-  foreach ($group_ids as $group_target_type => $ids) {
-
-    $membership_ids = \Drupal::entityQuery('og_membership')
-      ->condition('entity_type', $group_target_type)
-      ->condition('entity_id', $ids, 'IN')
-      ->condition('uid', $account->id())
-      ->execute();
-
-    /** @var OgMembership[] $memberships */
-    $memberships = OgMembership::loadMultiple($membership_ids);
-
-    foreach ($memberships as $membership) {
-      $permission = $account->id() == $entity->getOwnerId() ? $operation . ' own ' . $entity->bundle() . ' content' : $operation . ' any ' . $entity->bundle() . ' content';
-      if ($membership->hasPermission($permission)) {
-        return AccessResult::allowed();
-      }
-    }
-  }
-
-  // Otherwise, ignore or deny based on whether strict node access is set.
-  return AccessResult::forbiddenIf($node_access_strict);
-}
-
-/**
  * Implements hook_entity_create_access().
  */
 function og_entity_create_access(AccountInterface $account, array $context, $bundle) {

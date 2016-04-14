@@ -127,7 +127,7 @@ class OgAccess {
           }
         }
       }
-      
+
       static::setPermissionCache($group, $user, TRUE, $permissions, $cacheable_metadata);
     }
 
