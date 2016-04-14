@@ -136,41 +136,49 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
   }
 
   if ($entity_type_id == 'node') {
-    $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
-
-    // Get the user's group membership.
-    $fields = array_keys(Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle()));
-
-    $gids = [];
-    foreach ($fields as $field) {
-      $og_audience_field = $entity->get($field);
-
-      $gids += array_map(function (EntityInterface $group) {
-        return $group->id();
-      }, $og_audience_field->referencedEntities());
-
-      $membership_ids = \Drupal::entityQuery('og_membership')
-        ->condition('entity_type', $og_audience_field->getFieldDefinition()->getSetting('target_type'))
-        ->condition('entity_id', $gids, 'IN')
-        ->condition('uid', $account->id())
-        ->execute();
-
-      /** @var OgMembership[] $memberships */
-      $memberships = OgMembership::loadMultiple($membership_ids);
-
-      foreach ($memberships as $membership) {
-        $permission = $account->id() == $entity->getOwnerId() ? $operation . ' own ' . $entity->bundle() . ' content' : $operation . ' any ' . $entity->bundle() . ' content';
-        if ($membership->hasPermission($permission)) {
-          return AccessResult::allowed();
-        }
-      }
-    }
-
-    // Otherwise, ignore or deny based on whether strict node access is set.
-    return AccessResult::forbiddenIf($node_access_strict);
+    return og_node_entity_access($entity, $operation, $account);
   }
 
   return AccessResult::forbidden();
+}
+
+/**
+ * Helper function; Determine access of a user to node.
+ */
+function og_node_entity_access(EntityInterface $entity, $operation, AccountInterface $account) {
+  $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
+
+  // Get the user's group membership.
+  $fields = array_keys(Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle()));
+
+  $group_ids = [];
+  foreach ($fields as $field) {
+    $og_audience_field = $entity->get($field);
+
+    $group_ids += array_map(function (EntityInterface $group) {
+      return $group->id();
+    }, $og_audience_field->referencedEntities());
+
+
+    $membership_ids = \Drupal::entityQuery('og_membership')
+      ->condition('entity_type', $og_audience_field->getFieldDefinition()->getSetting('target_type'))
+      ->condition('entity_id', $group_ids, 'IN')
+      ->condition('uid', $account->id())
+      ->execute();
+
+    /** @var OgMembership[] $memberships */
+    $memberships = OgMembership::loadMultiple($membership_ids);
+
+    foreach ($memberships as $membership) {
+      $permission = $account->id() == $entity->getOwnerId() ? $operation . ' own ' . $entity->bundle() . ' content' : $operation . ' any ' . $entity->bundle() . ' content';
+      if ($membership->hasPermission($permission)) {
+        return AccessResult::allowed();
+      }
+    }
+  }
+
+  // Otherwise, ignore or deny based on whether strict node access is set.
+  return AccessResult::forbiddenIf($node_access_strict);
 }
 
 /**
