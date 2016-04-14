@@ -136,7 +136,7 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
   }
 
   if ($entity_type_id == 'node') {
-    return og_node_entity_access($entity, $operation, $account);
+    return _og_node_access($entity, $operation, $account);
   }
 
   return AccessResult::forbidden();
@@ -145,7 +145,7 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
 /**
  * Helper function; Determine access of a user to node.
  */
-function og_node_entity_access(EntityInterface $entity, $operation, AccountInterface $account) {
+function _og_node_access(EntityInterface $entity, $operation, AccountInterface $account) {
   $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
 
   // Get the user's group membership.
