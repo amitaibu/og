@@ -7,6 +7,7 @@
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\og\Entity\OgRoleInterface;
 use Drupal\og\Og;
@@ -127,16 +128,13 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
     $access = $access->orIf(OgAccess::userAccessEntity($operation, $entity, $account));
   }
 
-  if (!$access->isAllowed() && ($operation === 'update') && Og::isGroup($entity_type_id, $bundle_id)) {
-    $access = OgAccess::userAccessEntity($operation, $entity, $account);
+  if (!$access->isAllowed() && $operation === 'update' && Og::isGroup($entity_type_id, $bundle_id)) {
+    // The node is a group, so check "update group" permission.
+    $access = OgAccess::userAccessEntity('update group', $entity, $account);
   }
 
   if ($access->isAllowed()) {
     return $access;
-  }
-
-  if ($entity_type_id == 'node') {
-    return _og_node_access($entity, $operation, $account);
   }
 
   return AccessResult::forbidden();
@@ -144,25 +142,37 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
 
 /**
  * Helper function; Determine access of a user to node.
+ *
+ * Iterate over the user's group membership, and check access to the node.
  */
 function _og_node_access(EntityInterface $entity, $operation, AccountInterface $account) {
   $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
 
-  // Get the user's group membership.
-  $fields = array_keys(Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle()));
+  // Get all the audience fields.
+  $fields = Og::getAllGroupAudienceFields($entity->getEntityTypeId(), $entity->bundle());
+
 
   $group_ids = [];
-  foreach ($fields as $field) {
-    $og_audience_field = $entity->get($field);
 
-    $group_ids += array_map(function (EntityInterface $group) {
+  foreach (array_keys($fields) as $field_name) {
+
+    $og_audience_field = $entity->get($field_name);
+
+    $group_target_type = $og_audience_field->getFieldDefinition()->getSetting('target_type');
+
+    // Initialize the key in case it doesn't exist.
+    $group_ids += [$group_target_type => []];
+
+    $group_ids[$group_target_type] += array_map(function (EntityInterface $group) {
       return $group->id();
     }, $og_audience_field->referencedEntities());
+  }
 
+  foreach ($group_ids as $group_target_type => $ids) {
 
     $membership_ids = \Drupal::entityQuery('og_membership')
-      ->condition('entity_type', $og_audience_field->getFieldDefinition()->getSetting('target_type'))
-      ->condition('entity_id', $group_ids, 'IN')
+      ->condition('entity_type', $group_target_type)
+      ->condition('entity_id', $ids, 'IN')
       ->condition('uid', $account->id())
       ->execute();
 

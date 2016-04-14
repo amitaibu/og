@@ -13,6 +13,7 @@ use Drupal\Core\Entity\Display\EntityFormDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\og\Plugin\EntityReferenceSelection\OgSelection;
@@ -135,7 +136,7 @@ class Og {
   }
 
   /**
-   * Gets the groups an entity is associated with.
+   * Gets the groups a user is associated with.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The entity to get groups for.
@@ -149,10 +150,7 @@ class Og {
    *  the OG membership ID and the group ID as the value. If nothing found,
    *  then an empty array.
    */
-  public static function getEntityGroups(EntityInterface $entity, array $states = [OgMembershipInterface::STATE_ACTIVE], $field_name = NULL) {
-    $entity_type_id = $entity->getEntityTypeId();
-    $entity_id = $entity->id();
-
+  public static function getUserGroups(AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE], $field_name = NULL) {
     // Get a string identifier of the states, so we can retrieve it from cache.
     if ($states) {
       sort($states);
@@ -163,8 +161,7 @@ class Og {
     }
 
     $identifier = [
-      $entity_type_id,
-      $entity_id,
+      $user->id(),
       $state_identifier,
       $field_name,
     ];
@@ -177,7 +174,7 @@ class Og {
 
     static::$entityGroupCache[$identifier] = [];
     $query = \Drupal::entityQuery('og_membership')
-      ->condition('uid', $entity_id);
+      ->condition('uid', $user->id());
 
     if ($states) {
       $query->condition('state', $states, 'IN');
@@ -206,7 +203,7 @@ class Og {
    * Returns all group IDs associated with the given group content entity.
    *
    * Do not use this to retrieve group IDs associated with a user entity. Use
-   * Og::getEntityGroups() instead.
+   * Og::getUserGroups() instead.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The group content entity for which to return the associated groups.
@@ -225,7 +222,7 @@ class Og {
   public static function getGroupIds(EntityInterface $entity, $group_type_id = NULL, $group_bundle = NULL) {
     // This does not work for user entities.
     if ($entity->getEntityTypeId() === 'user') {
-      throw new \InvalidArgumentException('\\Og::getGroupIds() cannot be used for user entities. Use \\Og::getEntityGroups() instead.');
+      throw new \InvalidArgumentException('\\Og::getGroupIds() cannot be used for user entities. Use \\Og::getUserGroups() instead.');
     }
     $group_ids = [];
 
@@ -347,7 +344,9 @@ class Og {
       /** @var \Drupal\field\FieldStorageConfigInterface $field */
       $type_matches = $field->getSetting('target_type') === $entity->getEntityTypeId();
       // If the list of target bundles is empty, it targets all bundles.
-      $bundle_matches = empty($field->getSetting('target_bundles')) || in_array($entity->bundle(), $field->getSetting('target_bundles'));
+      $target_bundles = $field->getSetting('target_bundles');
+
+      $bundle_matches = empty($target_bundles) || in_array($entity->bundle(), $field->getSetting('target_bundles'));
       return $type_matches && $bundle_matches;
     });
 
@@ -387,9 +386,9 @@ class Og {
    *   a certain state.
    */
   public static function isMember(EntityInterface $group, EntityInterface $entity, $states = [OgMembershipInterface::STATE_ACTIVE]) {
-    $groups = static::getEntityGroups($entity, $states);
+    $groups = static::getUserGroups($entity, $states);
     $entity_type_id = $group->getEntityTypeId();
-    // We need to create a map of the group ids as Og::getEntityGroups returns a
+    // We need to create a map of the group ids as Og::getUserGroups returns a
     // map of membership_id => group entity for each type.
     return !empty($groups[$entity_type_id]) && in_array($group->id(), array_map(function($group_entity) {
       return $group_entity->id();
