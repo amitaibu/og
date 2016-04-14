@@ -198,7 +198,7 @@ function og_entity_create_access(AccountInterface $account, array $context, $bun
     }
   }
 
-  // todo try to determine the group context after og_context or entity
+  // @todo try to determine the group context after og_context or entity
   // reference prepopulate will be ported.
 
   // We can't check if user has create permissions, as there is no group
