@@ -12,6 +12,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\og\Entity\OgMembership;
 use Drupal\user\EntityOwnerInterface;
 
 class OgAccess {
@@ -113,7 +114,19 @@ class OgAccess {
     if (!$pre_alter_cache) {
       $permissions = array();
 
-      // @todo: Getting permissions from OG Roles will be added here.
+      $membership_ids = array_keys(Og::getUserMembershipsAndGroups($user));
+
+      if ($membership_ids) {
+        foreach (OgMembership::loadMultiple($membership_ids) as $membership) {
+
+          /** @var $membership OgMembership */
+          foreach ($membership->getRoles() as $role) {
+
+            /** @var $role OgRole */
+            $permissions = array_merge($permissions, $role->getPermissions());
+          }
+        }
+      }
 
       static::setPermissionCache($group, $user, TRUE, $permissions, $cacheable_metadata);
     }
@@ -186,7 +199,8 @@ class OgAccess {
     // @TODO: add caching on Og::isGroupContent.
     $is_group_content = Og::isGroupContent($entity_type_id, $bundle);
     $cache_tags = $entity_type->getListCacheTags();
-    if ($is_group_content && $entity_groups = Og::getEntityGroups($entity)) {
+
+    if ($is_group_content && $entity_groups = Og::getUserMembershipsAndGroups($entity)) {
       $forbidden = AccessResult::forbidden()->addCacheTags($cache_tags);
       foreach ($entity_groups as $groups) {
         foreach ($groups as $group) {

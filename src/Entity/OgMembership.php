@@ -16,6 +16,7 @@ use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\TypedData\DataDefinition;
 use Drupal\og\OgGroupAudienceHelper;
+use Drupal\og\OgMembershipInterface;
 
 /**
  * The OG membership is the main idea behind OG. The OG membership entity keep
@@ -58,12 +59,20 @@ use Drupal\og\OgGroupAudienceHelper;
 class OgMembership extends ContentEntityBase implements ContentEntityInterface {
 
   /**
+   * @param array $values
+   *
+   * @return OgMembership
+   */
+  public static function create(array $values = []) {
+    return parent::create($values + ['type' => OgMembershipInterface::TYPE_DEFAULT]);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function getCreatedTime() {
     return $this->get('created')->value;
   }
-
 
   /**
    * {@inheritdoc}

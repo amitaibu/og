@@ -7,11 +7,13 @@
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\og\Entity\OgRoleInterface;
 use Drupal\og\Og;
 use Drupal\og\OgAccess;
 use Drupal\og\Entity\OgMembership;
+use Drupal\og\OgGroupAudienceHelper;
 use Drupal\og\OgMembershipInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
@@ -126,19 +128,13 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
     $access = $access->orIf(OgAccess::userAccessEntity($operation, $entity, $account));
   }
 
-  if (!$access->isAllowed() && ($operation === 'update') && Og::isGroup($entity_type_id, $bundle_id)) {
-    $access = OgAccess::userAccessEntity($operation, $entity, $account);
+  if (!$access->isAllowed() && $operation === 'update' && Og::isGroup($entity_type_id, $bundle_id)) {
+    // The node is a group, so check "update group" permission.
+    $access = OgAccess::userAccessEntity('update group', $entity, $account);
   }
 
   if ($access->isAllowed()) {
     return $access;
-  }
-
-  if ($entity_type_id == 'node') {
-    $node_access_strict = \Drupal::config('og.settings')->get('node_access_strict');
-
-    // Otherwise, ignore or deny based on whether strict node access is set.
-    return AccessResult::forbiddenIf($node_access_strict);
   }
 
   return AccessResult::forbidden();
@@ -168,6 +164,9 @@ function og_entity_create_access(AccountInterface $account, array $context, $bun
       return AccessResult::neutral();
     }
   }
+
+  // @todo try to determine the group context after og_context or entity
+  // reference prepopulate will be ported.
 
   // We can't check if user has create permissions, as there is no group
   // context. However, we can check if there are any groups the user will be
