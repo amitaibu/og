@@ -136,10 +136,10 @@ class Og {
   }
 
   /**
-   * Gets the groups a user is associated with.
+   * Gets the membership and groups a user is associated with.
    *
-   * @param \Drupal\Core\Entity\EntityInterface $entity
-   *   The entity to get groups for.
+   * @param \Drupal\Core\Session\AccountInterface $user
+   *   The user to get groups for.
    * @param $states
    *   (optional) Array with the state to return. Defaults to active.
    * @param $field_name
@@ -150,7 +150,7 @@ class Og {
    *  the OG membership ID and the group ID as the value. If nothing found,
    *  then an empty array.
    */
-  public static function getUserGroups(AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE], $field_name = NULL) {
+  public static function getUserMembershipsAndGroups(AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE], $field_name = NULL) {
     // Get a string identifier of the states, so we can retrieve it from cache.
     if ($states) {
       sort($states);
@@ -203,7 +203,7 @@ class Og {
    * Returns all group IDs associated with the given group content entity.
    *
    * Do not use this to retrieve group IDs associated with a user entity. Use
-   * Og::getUserGroups() instead.
+   * Og::getUserMembershipsAndGroups() instead.
    *
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   The group content entity for which to return the associated groups.
@@ -222,7 +222,7 @@ class Og {
   public static function getGroupIds(EntityInterface $entity, $group_type_id = NULL, $group_bundle = NULL) {
     // This does not work for user entities.
     if ($entity->getEntityTypeId() === 'user') {
-      throw new \InvalidArgumentException('\\Og::getGroupIds() cannot be used for user entities. Use \\Og::getUserGroups() instead.');
+      throw new \InvalidArgumentException('\\Og::getGroupIds() cannot be used for user entities. Use \\Og::getUserMembershipsAndGroups() instead.');
     }
     $group_ids = [];
 
@@ -386,9 +386,9 @@ class Og {
    *   a certain state.
    */
   public static function isMember(EntityInterface $group, EntityInterface $entity, $states = [OgMembershipInterface::STATE_ACTIVE]) {
-    $groups = static::getUserGroups($entity, $states);
+    $groups = static::getUserMembershipsAndGroups($entity, $states);
     $entity_type_id = $group->getEntityTypeId();
-    // We need to create a map of the group ids as Og::getUserGroups returns a
+    // We need to create a map of the group ids as Og::getUserMembershipsAndGroups returns a
     // map of membership_id => group entity for each type.
     return !empty($groups[$entity_type_id]) && in_array($group->id(), array_map(function($group_entity) {
       return $group_entity->id();
