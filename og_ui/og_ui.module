@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Main functions and hook implementations of the Organic Groups UI module.
@@ -7,6 +8,7 @@
 use Drupal\Core\Config\Entity\ConfigEntityBundleBase;
 use Drupal\Core\Entity\BundleEntityFormBase;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
@@ -92,5 +94,18 @@ function og_ui_entity_type_save(EntityInterface $entity) {
       $field->setSetting('handler_settings', $handler_settings);
       $field->save();
     }
+  }
+}
+
+/**
+ * Implements hook_entity_bundle_field_info_alter().
+ *
+ * Set the default field formatter of fields of type OG group.
+ */
+function og_ui_entity_bundle_field_info_alter(&$fields, EntityTypeInterface $entity_type, $bundle) {
+  if (isset($fields['og_group'])) {
+    $fields['og_group']->setDisplayOptions('view', [
+      'type' => 'og_ui_group_subscribe',
+    ])->setDisplayConfigurable('view', TRUE);
   }
 }
