@@ -10,6 +10,8 @@ namespace Drupal\og\Plugin\Field\FieldType;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\og\Og;
 
 /**
  * Class OgStandardReferenceItem.
@@ -53,6 +55,34 @@ class OgStandardReferenceItem extends EntityReferenceItem {
     ];
 
     return $form;
+  }
+
+  /**
+   * Overrides parent::getSettableOptions().
+   *
+   * Return the list of allowed groups to reference the content to.
+   */
+  public function getSettableOptions(AccountInterface $account = NULL) {
+    $field_definition = $this->getFieldDefinition();
+    $field_mode = !empty($field_definition->otherGroup) ? 'admin' : 'default';
+
+    if (!$options = Og::getSelectionHandler($this->getFieldDefinition(), ['handler_settings' => ['field_mode' => $field_mode]])->getReferenceableEntities()) {
+      return array();
+    }
+
+    // Rebuild the array by changing the bundle key into the bundle label.
+    $target_type = $field_definition->getSetting('target_type');
+    $bundles = \Drupal::entityManager()->getBundleInfo($target_type);
+
+    $return = array();
+    foreach ($options as $bundle => $entity_ids) {
+      // The label does not need sanitizing since it is used as an optgroup
+      // which is only supported by select elements and auto-escaped.
+      $bundle_label = (string) $bundles[$bundle]['label'];
+      $return[$bundle_label] = $entity_ids;
+    }
+
+    return count($return) == 1 ? reset($return) : $return;
   }
 
 }

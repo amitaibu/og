@@ -11,8 +11,14 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldException;
+use Drupal\Core\Field\FieldFilteredMarkup;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
-use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Field\WidgetBase;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\og\Plugin\Field\FieldWidget\OgComplex;
+use Drupal\Component\Utility\Html;
 
 /**
  * OG audience field helper methods.
@@ -126,6 +132,106 @@ class OgGroupAudienceHelper {
     }
 
     return NULL;
+  }
+
+  /**
+   * Get list of available widgets.
+   *
+   * @return array
+   *   List of available entity reference widgets.
+   */
+  public static function getAvailableWidgets() {
+    $widget_manager = \Drupal::getContainer()->get('plugin.manager.field.widget');
+    $definitions = $widget_manager->getDefinitions();
+
+    $widgets = [];
+    foreach ($definitions as $id => $definition) {
+
+      if (!in_array('entity_reference', $definition['field_types'])) {
+        continue;
+      }
+
+      $widgets[] = $id;
+    }
+
+    return $widgets;
+  }
+
+  /**
+   * Set the field mode widget.
+   *
+   * @param $entity_id
+   *   The entity id.
+   * @param $bundle
+   *   The bundle.
+   * @param $field_name
+   *   The field name.
+   * @param array $modes
+   *   The field modes. Available keys: default, admin.
+   *
+   * @return int
+   *   Either SAVED_NEW or SAVED_UPDATED, depending on the operation performed.
+   */
+  public static function setWidgets($entity_id, $bundle, $field_name, array $modes) {
+    $field = FieldConfig::loadByName($entity_id, $bundle, $field_name);
+    $handler = $field->getSetting('handler_settings');
+    $handler['widgets'] = $modes;
+    $field->setSetting('handler_settings', $handler);
+    return $field->save();
+  }
+
+  /**
+   * get the field mode widget.
+   *
+   * @param $entity_id
+   *   The entity id.
+   * @param $bundle
+   *   The bundle.
+   * @param $field_name
+   *   The field name.
+   * @param null $mode
+   *   The field mode - admin or default.
+   *
+   * @return array.
+   *   The field modes.
+   */
+  public static function getWidgets($entity_id, $bundle, $field_name, $mode = NULL) {
+    $field = FieldConfig::loadByName($entity_id, $bundle, $field_name);
+    $handler = $field->getSetting('handler_settings');
+    return $mode ? $handler['widgets'][$mode] : $handler['handler_settings']['widgets'];
+  }
+
+  /**
+   * @param FieldDefinitionInterface $field
+   *   The field definition.
+   * @param $widget_id
+   *   An entity reference widget plugin id i.e: options_select, options_buttons.
+   * @param string $field_name
+   *   The field name. Default to self::DEFAULT_FIELD.
+   * @param array $configuration
+   *   Configuration which will be passed to the widget instance.
+   *
+   * @return WidgetBase The form API widget element.
+   * The form API widget element.
+   */
+  public static function renderWidget(FieldDefinitionInterface $field, $widget_id, $field_name = self::DEFAULT_FIELD, array $configuration = []) {
+    $config = FieldConfig::load($field->getTargetEntityTypeId() . '.' . $field->getTargetBundle() . '.' . $field_name);
+
+    $default_configuration = $configuration + [
+        'type' => 'og_complex',
+        'settings' => [
+          'match_operator' => 'CONTAINS',
+          'size' => 60,
+          'placeholder' => '',
+        ],
+        'third_party_settings' => [],
+        'field_definition' => $config,
+      ];
+
+    return \Drupal::getContainer()
+      ->get('plugin.manager.field.widget')
+      ->createInstance($widget_id, $default_configuration);
+
   }
 
   /**

@@ -9,6 +9,7 @@ namespace Drupal\og\Plugin\Field\FieldType;
 
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Class OgMembershipReferenceItem.

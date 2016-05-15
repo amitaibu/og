@@ -9,14 +9,16 @@ namespace Drupal\og\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteTagsWidget;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\og\Og;
 use Drupal\og\OgAccess;
-use Drupal\user\Entity\User;
+use Drupal\og\OgGroupAudienceHelper;
 
 /**
  * Plugin implementation of the 'entity_reference autocomplete' widget.
@@ -51,11 +53,11 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
   public function form(FieldItemListInterface $items, array &$form, FormStateInterface $form_state, $get_delta = NULL) {
     $parent_form = parent::form($items, $form, $form_state, $get_delta);
 
-    $parent_form['other_groups'] = [];
+    $parent_form[$this->fieldDefinition->getFieldStorageDefinition()->getName() . '_other_groups'] = [];
 
     // Adding the other groups widget.
     if ($this->isGroupAdmin()) {
-      $parent_form['other_groups'] = $this->otherGroupsWidget($items, $form_state);
+      $parent_form[$this->fieldDefinition->getFieldStorageDefinition()->getName() . '_other_groups'] = $this->otherGroupsWidget($items, $form, $form_state) + ['#tree' => true];
     }
 
     return $parent_form;
@@ -70,129 +72,104 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
    * - table display and drag-n-drop value reordering
    */
   protected function formMultipleElements(FieldItemListInterface $items, array &$form, FormStateInterface $form_state) {
-    $field_name = $this->fieldDefinition->getName();
+
+    $items_new = $this->getAutoCompleteItems($items, $form, $form_state);
+    $multiple = parent::formMultipleElements($items_new, $form, $form_state);
+
+    $widget_id = OgGroupAudienceHelper::getWidgets(
+      $this->fieldDefinition->getTargetEntityTypeId(),
+      $this->fieldDefinition->getTargetBundle(),
+      $this->fieldDefinition->getName(),
+      'default'
+    );
+
+    $handler = OgGroupAudienceHelper::renderWidget($this->fieldDefinition, $widget_id);
+
+    if ($handler instanceof EntityReferenceAutocompleteWidget) {
+      // No need for extra work here since we already extending the auto
+      // complete handler.
+      return $multiple;
+    }
+
+    // Change the functionality of the original handler and call the other
+    // handlers.
     $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
-    $parents = $form['#parents'];
 
-    $target_type = $this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type');
-    $user_groups = Og::getEntityGroups(User::load(\Drupal::currentUser()->id()));
-    $user_groups_target_type = isset($user_groups[$target_type]) ? $user_groups[$target_type] : [];
-    $user_group_ids = array_map(function($group) {
-      return $group->id();
-    }, $user_groups_target_type);
+    $element = [
+      '#required' => $this->fieldDefinition->isRequired(),
+      '#multiple' => $cardinality !== 1,
+      '#title' => $this->fieldDefinition->getLabel(),
+      '#description' => FieldFilteredMarkup::create(\Drupal::token()->replace($this->fieldDefinition->getDescription())),
+    ];
 
-    // Determine the number of widgets to display.
-    switch ($cardinality) {
-      case FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED:
-        $field_state = static::getWidgetState($parents, $field_name, $form_state);
-        $max = $field_state['items_count'];
-        $is_multiple = TRUE;
-        break;
+    $widget = $handler->formElement($items, 0, $element, $form, $form_state);
 
-      default:
-        $max = $cardinality - 1;
-        $is_multiple = ($cardinality > 1);
-        break;
+    if ($handler instanceof EntityReferenceAutocompleteTagsWidget) {
+      // The auto complete tags widget return the form element wrapped in
+      // 'target_id' key. If the element won't be extracted the selected groups
+      // will not processed correct.
+      $widget = $widget['target_id'];
     }
 
-    $title = $this->fieldDefinition->getLabel();
-    $description = FieldFilteredMarkup::create(\Drupal::token()->replace($this->fieldDefinition->getDescription()));
+    $widget = $widget + $element;
 
-    $elements = array();
-
-    for ($delta = 0; $delta <= $max; $delta++) {
-      // Add a new empty item if it doesn't exist yet at this delta.
-      if (!isset($items[$delta])) {
-        $items->appendItem();
-      }
-      elseif (!in_array($items[$delta]->get('target_id')->getValue(), $user_group_ids)) {
-        continue;
-      }
-
-      // For multiple fields, title and description are handled by the wrapping
-      // table.
-      if ($is_multiple) {
-        $element = [
-          '#title' => $this->t('@title (value @number)', ['@title' => $title, '@number' => $delta + 1]),
-          '#title_display' => 'invisible',
-          '#description' => '',
-        ];
-      }
-      else {
-        $element = [
-          '#title' => $title,
-          '#title_display' => 'before',
-          '#description' => $description,
-        ];
-      }
-
-      $element = $this->formSingleElement($items, $delta, $element, $form, $form_state);
-
-      if ($element) {
-        // Input field for the delta (drag-n-drop reordering).
-        if ($is_multiple) {
-          // We name the element '_weight' to avoid clashing with elements
-          // defined by widget.
-          $element['_weight'] = array(
-            '#type' => 'weight',
-            '#title' => $this->t('Weight for row @number', array('@number' => $delta + 1)),
-            '#title_display' => 'invisible',
-            // Note: this 'delta' is the FAPI #type 'weight' element's property.
-            '#delta' => $max,
-            '#default_value' => $items[$delta]->_weight ?: $delta,
-            '#weight' => 100,
-          );
-        }
-
-        $elements[$delta] = $element;
-      }
-    }
-
-    if ($elements) {
-      $elements += array(
-        '#theme' => 'field_multiple_value_form',
-        '#field_name' => $field_name,
-        '#cardinality' => $cardinality,
-        '#cardinality_multiple' => $this->fieldDefinition->getFieldStorageDefinition()->isMultiple(),
-        '#required' => $this->fieldDefinition->isRequired(),
-        '#title' => $title,
-        '#description' => $description,
-        '#max_delta' => $max,
-      );
-
-      // Add 'add more' button, if not working with a programmed form.
-      if ($cardinality == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED && !$form_state->isProgrammed()) {
-        $id_prefix = implode('-', array_merge($parents, array($field_name)));
-        $wrapper_id = Html::getUniqueId($id_prefix . '-add-more-wrapper');
-        $elements['#prefix'] = '<div id="' . $wrapper_id . '">';
-        $elements['#suffix'] = '</div>';
-
-        $elements['add_more'] = array(
-          '#type' => 'submit',
-          '#name' => strtr($id_prefix, '-', '_') . '_add_more',
-          '#value' => t('Add another item'),
-          '#attributes' => array('class' => array('field-add-more-submit')),
-          '#limit_validation_errors' => array(array_merge($parents, array($field_name))),
-          '#submit' => array(array(get_class($this), 'addMoreSubmit')),
-          '#ajax' => array(
-            'callback' => array(get_class($this), 'addMoreAjax'),
-            'wrapper' => $wrapper_id,
-            'effect' => 'fade',
-          ),
-        );
-      }
-    }
-
-    return $elements;
+    return $widget;
   }
 
   /**
    * Adding the other groups widget to the form.
    *
-   * @param $elements
-   *   The widget array.
+   * @param FieldItemListInterface $items
+   * @param array $form
+   * @param FormStateInterface $form_state
+   * @return mixed
    */
-  protected function otherGroupsWidget(FieldItemListInterface $items, FormStateInterface $form_state) {
+  protected function otherGroupsWidget(FieldItemListInterface $items, array $form, FormStateInterface $form_state) {
+
+    $widget_id = OgGroupAudienceHelper::getWidgets(
+      $this->fieldDefinition->getTargetEntityTypeId(),
+      $this->fieldDefinition->getTargetBundle(),
+      $this->fieldDefinition->getName(),
+      'admin'
+    );
+
+    $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality() !== 1;
+    $element = [
+      '#required' => $this->fieldDefinition->isRequired(),
+      '#multiple' => $cardinality,
+      '#title' => $this->fieldDefinition->getLabel(),
+      '#description' => FieldFilteredMarkup::create(\Drupal::token()->replace($this->fieldDefinition->getDescription())),
+    ];
+
+    $this->fieldDefinition->otherGroup = TRUE;
+
+    $field_definition_clone = clone $this->fieldDefinition;
+
+    $handler = OgGroupAudienceHelper::renderWidget($field_definition_clone, $widget_id);
+    $items = $this->getAutoCompleteItems($items, $form, $form_state, TRUE);
+
+    $widget = $handler->formElement($items, 0, $element, $form, $form_state);
+
+    if ($handler instanceof EntityReferenceAutocompleteWidget) {
+      return $this->AutoCompleteHandler($field_definition_clone, $items, $form, $form_state);
+    }
+
+    return $widget;
+  }
+
+  /**
+   * Creating a custom auto complete widget for the other groups widget.
+   *
+   * @param FieldItemListInterface $items
+   *   The field items.
+   *
+   * @return mixed
+   *   Form API element.
+   */
+  protected function AutoCompleteHandler(FieldDefinitionInterface $field_definition, FieldItemListInterface $items, $form, FormStateInterface $form_state) {
+
+    $field_wrapper = Html::getClass($this->fieldDefinition->getName()) . '-other-groups-add-another-group';
+
     if ($this->fieldDefinition->getTargetEntityTypeId() == 'user') {
       $description = $this->t('As groups administrator, associate this user with groups you do <em>not</em> belong to.');
     }
@@ -200,11 +177,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
       $description = $this->t('As groups administrator, associate this content with groups you do <em>not</em> belong to.');
     }
 
-    $field_wrapper = Html::getClass($this->fieldDefinition->getName()) . '-add-another-group';
-
-    $elements = [
-      '#type' => 'container',
-      '#tree' => TRUE,
+    $widget = [
       '#title' => $this->t('Other groups'),
       '#description' => $description,
       '#prefix' => '<div id="' . $field_wrapper . '">',
@@ -212,47 +185,28 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
       '#cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
       '#cardinality_multiple' => TRUE,
       '#theme' => 'field_multiple_value_form',
-      '#field_name' => $this->fieldDefinition->getName(),
+      '#field_name' => $this->fieldDefinition->getName() . '_other_group',
       '#max_delta' => 1,
     ];
 
-    $elements['add_more'] = [
-      '#type' => 'button',
-      '#value' => $this->t('Add another item'),
-      '#name' => 'add_another_group',
-      '#ajax' => [
-        'callback' => [$this, 'addMoreAjax'],
-        'wrapper' => $field_wrapper,
-        'effect' => 'fade',
-      ],
-    ];
+    // Wrapping the element with array and #tree => TRUE will make sure FAPI
+    // will pass the selected group in array. We need this to so for
+    // self::massageFormValues() will treat all the other group widget the same.
+    $elements = [];
 
     $delta = 0;
-
-    $target_type = $this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type');
-
-    $user_groups = Og::getEntityGroups(User::load(\Drupal::currentUser()->id()));
-    $user_groups_target_type = isset($user_groups[$target_type]) ? $user_groups[$target_type] : [];
-    $user_group_ids = array_map(function($group) {
-      return $group->id();
-    }, $user_groups_target_type);
-
-    $other_groups_weight_delta = round(count($user_groups) / 2);
-
-    foreach ($items->referencedEntities() as $group) {
-      if (in_array($group->id(), $user_group_ids)) {
-        continue;
-      }
-
-      $elements[$delta] = $this->otherGroupsSingle($delta, $group, $other_groups_weight_delta);
+    foreach ($items->referencedEntities() as $item) {
+      $elements[$delta] = $this->otherGroupsSingle($delta, $item);
       $delta++;
     }
+
+    // Add another item.
+    $elements[] = $this->otherGroupsSingle($delta + 1);
 
     if (!$form_state->get('other_group_delta')) {
       $form_state->set('other_group_delta', $delta);
     }
 
-    // Get the trigger element and check if this the add another item button.
     $trigger_element = $form_state->getTriggeringElement();
 
     if ($trigger_element['#name'] == 'add_another_group') {
@@ -264,10 +218,23 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
     // Add another auto complete field.
     for ($i = $delta; $i <= $form_state->get('other_group_delta'); $i++) {
       // Also add one to the weight delta, just to make sure.
-      $elements[$i] = $this->otherGroupsSingle($i, NULL, $other_groups_weight_delta + 1);
+      $elements[$i] = $this->otherGroupsSingle($i);
     }
 
-    return $elements;
+    $widget['add_more'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Add another item'),
+      '#name' => 'add_another_group',
+      '#ajax' => [
+        'callback' => [$this, 'addMoreAjax'],
+        'wrapper' => $field_wrapper,
+        'effect' => 'fade',
+      ],
+    ];
+
+    $widget += $elements;
+
+    return $widget;
   }
 
   /**
@@ -282,6 +249,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
    *   A single entity reference input.
    */
   public function otherGroupsSingle($delta, EntityInterface $entity = NULL, $weight_delta = 10) {
+
     return [
       'target_id' => [
         // @todo Allow this to be configurable with a widget setting.
@@ -312,26 +280,11 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
       return !empty($item['target_id']);
     });
 
-    // Get the groups from the other groups widget.
-    foreach ($form[$this->fieldDefinition->getName()]['other_groups'] as $key => $value) {
-      if (!is_int($key)) {
-        continue;
-      }
+    $other_group_values = array_filter($form_state->getValue($this->fieldDefinition->getName() . '_other_groups'), function($item) {
+      return is_array($item) && !empty($item['target_id']);
+    });
 
-      // Matches the entity label and ID. E.g. 'Label (123)'. The entity ID will
-      // be captured in it's own group, with the key 'id'.
-      preg_match("|.+\((?<id>[\w.]+)\)|", $value['target_id']['#value'], $matches);
-
-      if (!empty($matches['id'])) {
-        $values[] = [
-          'target_id' => $matches['id'],
-          '_weight' => $value['_weight']['#value'],
-          '_original_delta' => $value['_weight']['#delta'],
-        ];
-      }
-    }
-
-    return $values;
+    return array_merge($values, $other_group_values);
   }
 
   /**
@@ -342,6 +295,52 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
   protected function isGroupAdmin() {
     // @todo Inject current user service as a dependency.
     return \Drupal::currentUser()->hasPermission(OgAccess::ADMINISTER_GROUP_PERMISSION);
+  }
+
+  /**
+   * @return FieldItemListInterface
+   */
+  protected function getAutoCompleteItems(FieldItemListInterface $items, $form, FormStateInterface $form_state, $other_groups = FALSE) {
+    $new_items = clone $items;
+    // Get the groups which already referenced.
+    $referenced_groups_ids = [];
+
+    foreach ($new_items->getEntity()->get($this->fieldDefinition->getName())->referencedEntities() as $entity) {
+      $referenced_groups_ids[] = $entity->id();
+    }
+    $referenced_groups_ids = array_unique($referenced_groups_ids);
+
+    // Get all the entities we can referenced to.
+    $field_mode = $other_groups ? 'admin' : 'default';
+    $referenceable_groups = Og::getSelectionHandler($this->fieldDefinition, ['handler_settings' => ['field_mode' => $field_mode]])->getReferenceableEntities();
+
+    $gids = [];
+    $handler_settings = $this->fieldDefinition->getSetting('handler_settings');
+    foreach ($handler_settings['target_bundles'] as $target_bundle) {
+      if (!$referenceable_groups) {
+        continue;
+      }
+
+      $gids += array_keys($referenceable_groups[$target_bundle]);
+    }
+
+    $entity_ids = array_filter($gids, function($gids) use($referenced_groups_ids) {
+      return in_array($gids, $referenced_groups_ids) ? $gids : NULL;
+    });
+
+    $entities = \Drupal::entityTypeManager()
+      ->getStorage($this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type'))
+      ->loadMultiple($entity_ids);
+
+    $new_items->setValue($entities);
+
+    if (!$form_state->getTriggeringElement()) {
+      $field_state = static::getWidgetState($form['#parents'], $this->fieldDefinition->getName(), $form_state);
+      $field_state['items_count'] = count($entities);
+      static::setWidgetState($form['#parents'], $this->fieldDefinition->getName(), $form_state, $field_state);
+    }
+
+    return $new_items;
   }
 
 }

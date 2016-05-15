@@ -50,7 +50,12 @@ class AudienceField extends OgFieldBase implements OgFieldsInterface {
       'label' => $this->t('Groups audience'),
       'settings' => [
         'handler' => 'og',
-        'handler_settings' => [],
+        'handler_settings' => [
+          'widgets' => [
+            'default' => 'entity_reference_autocomplete',
+            'admin' => 'entity_reference_autocomplete',
+          ],
+        ],
       ],
     ];
 

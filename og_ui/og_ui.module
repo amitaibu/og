@@ -77,13 +77,10 @@ function og_ui_entity_type_save(EntityInterface $entity) {
 
   // Change the field target type and bundle.
   if ($field_storage = FieldStorageConfig::loadByName($entity_type_id, OgGroupAudienceHelper::DEFAULT_FIELD)) {
-    $target_type = $field_storage->getSetting('target_type');
-    if ($entity->og_target_type !== $target_type) {
-      // @todo It's probably not possible to change the field storage after the
-      //   field has data. We should disable this option in the UI.
-      $field_storage->setSetting('target_type', $entity->og_target_type);
-      $field_storage->save();
-    }
+    // @todo It's probably not possible to change the field storage after the
+    //   field has data. We should disable this option in the UI.
+    $field_storage->setSetting('target_type', $entity->og_target_type);
+    $field_storage->save();
   }
   if ($field = FieldConfig::loadByName($entity_type_id, $bundle, OgGroupAudienceHelper::DEFAULT_FIELD)) {
     $handler_settings = $field->getSetting('handler_settings');
