@@ -14,6 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
+use Drupal\og\OgGroupAudienceHelper;
 
 class OgAccessEntityTestBase extends OgAccessTestBase {
 
@@ -23,7 +24,7 @@ class OgAccessEntityTestBase extends OgAccessTestBase {
     parent::setUp();
 
     $field_definition = $this->prophesize(FieldDefinitionInterface::class);
-    $field_definition->getType()->willReturn('og_standard_reference');
+    $field_definition->getType()->willReturn(OgGroupAudienceHelper::NON_USER_REFERENCE_FIELD);
     $field_definition->getFieldStorageDefinition()
       ->willReturn($this->prophesize(FieldStorageDefinitionInterface::class)->reveal());
     $field_definition->getSetting("handler_settings")->willReturn([]);

@@ -379,7 +379,7 @@ class Og {
   protected static function getGroupContentIds(EntityInterface $entity, $is_user = FALSE, array $entity_types = []) {
     $group_content = [];
 
-    $field_type = $is_user ? 'og_membership_reference' : 'og_standard_reference';
+    $field_type = $is_user ? OgGroupAudienceHelper::USER_REFERENCE_FIELD : OgGroupAudienceHelper::NON_USER_REFERENCE_FIELD;
 
     // Retrieve the fields which reference our entity type and bundle.
     $query = \Drupal::entityQuery('field_storage_config')
