@@ -1,9 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\og\Plugin\OgFields\AccessField.
- */
 
 namespace Drupal\og\Plugin\OgFields;
 
@@ -15,27 +11,19 @@ use Drupal\og\OgFieldsInterface;
  * Determine if group should use default roles and permissions.
  *
  * @OgFields(
- *  id = OG_DEFAULT_ACCESS_FIELD,
+ *  id = "roles_override",
  *  type = "group",
  *  description = @Translation("Determine if group should use default roles and permissions.")
  * )
  */
-class AccessField extends OgFieldBase implements OgFieldsInterface {
+class RolesOverride extends OgFieldBase implements OgFieldsInterface {
 
   /**
    * {@inheritdoc}
    */
   public function getFieldStorageBaseDefinition(array $values = []) {
     $values += [
-      'cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-      'settings' => [
-        'allowed_values' => [
-          0 => 'Use default roles and permissions',
-          1 => 'Override default roles and permissions',
-        ],
-        'allowed_values_function' => '',
-      ],
-      'type' => 'list_integer',
+      'type' => 'boolean',
     ];
 
     return parent::getFieldStorageBaseDefinition($values);
@@ -46,11 +34,9 @@ class AccessField extends OgFieldBase implements OgFieldsInterface {
    */
   public function getFieldBaseDefinition(array $values = []) {
     $values += [
-      'default_value' => [0 => ['value' => 0]],
-      'description' => $this->t('Determine if group should use default roles and permissions.'),
-      'display_label' => TRUE,
-      'label' => $this->t('Group roles and permissions'),
-      'required' => TRUE,
+      'description' => $this->t('Determine if group should override the default roles and permissions.'),
+      'label' => $this->t('Group roles'),
+      'required' => FALSE,
     ];
 
     return parent::getFieldBaseDefinition($values);
@@ -61,8 +47,7 @@ class AccessField extends OgFieldBase implements OgFieldsInterface {
    */
   public function getFormDisplayDefinition(array $values = []) {
     $values += [
-      'type' => 'options_select',
-      'settings' => [],
+      'type' => 'boolean_checkbox',
     ];
 
 
@@ -74,7 +59,7 @@ class AccessField extends OgFieldBase implements OgFieldsInterface {
    */
   public function getViewDisplayDefinition(array $values = [])  {
     $values += [
-      'type' => 'list_default',
+      'type' => 'boolean',
       'label' => 'above',
     ];
 
