@@ -186,18 +186,7 @@ class OgRole extends Role implements OgRoleInterface {
       if (empty($this->getGroupBundle())) {
         throw new ConfigValueException('The group bundle can not be empty.');
       }
-
-      // When assigning a role to group we need to add a prefix to the ID in
-      // order to prevent duplicate IDs.
-      $prefix = $this->getGroupType() . '-' . $this->getGroupBundle() . '-';
-
-      if (!empty($this->getGroupId())) {
-        $prefix .= $this->getGroupId() . '-';
-      }
-
-      $this->id = $prefix . $this->id();
     }
-
     parent::save();
   }
 
