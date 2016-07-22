@@ -13,9 +13,14 @@ use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
+use Drupal\Core\Field\WidgetBase;
+use Drupal\Core\Field\WidgetInterface;
+use Drupal\Core\Field\WidgetPluginManager;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\field\Entity\FieldConfig;
 use Drupal\og\Og;
 use Drupal\og\OgAccess;
+use Drupal\og\OgFieldsInterface;
 use Drupal\user\Entity\User;
 
 /**
@@ -31,275 +36,45 @@ use Drupal\user\Entity\User;
  *   }
  * )
  */
-class OgComplex extends EntityReferenceAutocompleteWidget {
-
-  /**
-   * {@inheritdoc}
-   */
-  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
-    $parent = parent::formElement($items, $delta, $element, $form, $form_state);
-    // todo: fix the definition in th UI level.
-    $parent['target_id']['#selection_handler'] = 'og:default';
-    $parent['target_id']['#selection_settings']['field_mode'] = 'default';
-
-    return $parent;
-  }
+class OgComplex extends WidgetBase {
 
   /**
    * {@inheritdoc}
    */
   public function form(FieldItemListInterface $items, array &$form, FormStateInterface $form_state, $get_delta = NULL) {
-    $parent_form = parent::form($items, $form, $form_state, $get_delta);
+    $config = FieldConfig::load($this->fieldDefinition->getTargetEntityTypeId() . '.' . $this->fieldDefinition->getTargetBundle() . '.' . $this->fieldDefinition->getName());
+    $default_configuration = $this->getFieldConfigSetting($config);
 
-    $parent_form['other_groups'] = [];
+    /** @var WidgetPluginManager $widget */
+    $widget = \Drupal::service('plugin.manager.field.widget');
 
-    // Adding the other groups widget.
-    if ($this->isGroupAdmin()) {
-      $parent_form['other_groups'] = $this->otherGroupsWidget($items, $form_state);
-    }
+    /** @var WidgetInterface $foo */
+    $foo = $widget->createInstance('entity_reference_autocomplete', $default_configuration);
+    $bar = $widget->createInstance('entity_reference_autocomplete', $default_configuration);
 
-    return $parent_form;
-  }
+    // The problem comes from WidgetBase::form() where we have the function
+    // static::getWidgetState(). Since the field name is the same the storage
+    // of the fields are keep the same the add another button act weird.
+    // We need to pass that logic and apply it to a state when we call to the
+    // same field twice.
+    $items_new = clone $items;
 
-  /**
-   * Special handling to create form elements for multiple values.
-   *
-   * Handles generic features for multiple fields:
-   * - number of widgets
-   * - AHAH-'add more' button
-   * - table display and drag-n-drop value reordering
-   */
-  protected function formMultipleElements(FieldItemListInterface $items, array &$form, FormStateInterface $form_state) {
-    $field_name = $this->fieldDefinition->getName();
-    $cardinality = $this->fieldDefinition->getFieldStorageDefinition()->getCardinality();
-    $parents = $form['#parents'];
+    $one = $foo->form($items, $form, $form_state);
+    $two = $bar->form($items_new, $form, $form_state);
 
-    $target_type = $this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type');
-    $user_groups = Og::getUserGroups(User::load(\Drupal::currentUser()->id()));
-    $user_groups_target_type = isset($user_groups[$target_type]) ? $user_groups[$target_type] : [];
-    $user_group_ids = array_map(function($group) {
-      return $group->id();
-    }, $user_groups_target_type);
-
-    // Determine the number of widgets to display.
-    switch ($cardinality) {
-      case FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED:
-        $field_state = static::getWidgetState($parents, $field_name, $form_state);
-        $max = $field_state['items_count'];
-        $is_multiple = TRUE;
-        break;
-
-      default:
-        $max = $cardinality - 1;
-        $is_multiple = ($cardinality > 1);
-        break;
-    }
-
-    $title = $this->fieldDefinition->getLabel();
-    $description = FieldFilteredMarkup::create(\Drupal::token()->replace($this->fieldDefinition->getDescription()));
-
-    $elements = array();
-
-    for ($delta = 0; $delta <= $max; $delta++) {
-      // Add a new empty item if it doesn't exist yet at this delta.
-      if (!isset($items[$delta])) {
-        $items->appendItem();
-      }
-      elseif (!in_array($items[$delta]->get('target_id')->getValue(), $user_group_ids)) {
-        continue;
-      }
-
-      // For multiple fields, title and description are handled by the wrapping
-      // table.
-      if ($is_multiple) {
-        $element = [
-          '#title' => $this->t('@title (value @number)', ['@title' => $title, '@number' => $delta + 1]),
-          '#title_display' => 'invisible',
-          '#description' => '',
-        ];
-      }
-      else {
-        $element = [
-          '#title' => $title,
-          '#title_display' => 'before',
-          '#description' => $description,
-        ];
-      }
-
-      $element = $this->formSingleElement($items, $delta, $element, $form, $form_state);
-
-      if ($element) {
-        // Input field for the delta (drag-n-drop reordering).
-        if ($is_multiple) {
-          // We name the element '_weight' to avoid clashing with elements
-          // defined by widget.
-          $element['_weight'] = array(
-            '#type' => 'weight',
-            '#title' => $this->t('Weight for row @number', array('@number' => $delta + 1)),
-            '#title_display' => 'invisible',
-            // Note: this 'delta' is the FAPI #type 'weight' element's property.
-            '#delta' => $max,
-            '#default_value' => $items[$delta]->_weight ?: $delta,
-            '#weight' => 100,
-          );
-        }
-
-        $elements[$delta] = $element;
-      }
-    }
-
-    if ($elements) {
-      $elements += array(
-        '#theme' => 'field_multiple_value_form',
-        '#field_name' => $field_name,
-        '#cardinality' => $cardinality,
-        '#cardinality_multiple' => $this->fieldDefinition->getFieldStorageDefinition()->isMultiple(),
-        '#required' => $this->fieldDefinition->isRequired(),
-        '#title' => $title,
-        '#description' => $description,
-        '#max_delta' => $max,
-      );
-
-      // Add 'add more' button, if not working with a programmed form.
-      if ($cardinality == FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED && !$form_state->isProgrammed()) {
-        $id_prefix = implode('-', array_merge($parents, array($field_name)));
-        $wrapper_id = Html::getUniqueId($id_prefix . '-add-more-wrapper');
-        $elements['#prefix'] = '<div id="' . $wrapper_id . '">';
-        $elements['#suffix'] = '</div>';
-
-        $elements['add_more'] = array(
-          '#type' => 'submit',
-          '#name' => strtr($id_prefix, '-', '_') . '_add_more',
-          '#value' => t('Add another item'),
-          '#attributes' => array('class' => array('field-add-more-submit')),
-          '#limit_validation_errors' => array(array_merge($parents, array($field_name))),
-          '#submit' => array(array(get_class($this), 'addMoreSubmit')),
-          '#ajax' => array(
-            'callback' => array(get_class($this), 'addMoreAjax'),
-            'wrapper' => $wrapper_id,
-            'effect' => 'fade',
-          ),
-        );
-      }
-    }
-
-    return $elements;
-  }
-
-  /**
-   * Adding the other groups widget to the form.
-   *
-   * @param $elements
-   *   The widget array.
-   */
-  protected function otherGroupsWidget(FieldItemListInterface $items, FormStateInterface $form_state) {
-    if ($this->fieldDefinition->getTargetEntityTypeId() == 'user') {
-      $description = $this->t('As groups administrator, associate this user with groups you do <em>not</em> belong to.');
-    }
-    else {
-      $description = $this->t('As groups administrator, associate this content with groups you do <em>not</em> belong to.');
-    }
-
-    $field_wrapper = Html::getClass($this->fieldDefinition->getName()) . '-add-another-group';
-
-    $elements = [
-      '#type' => 'container',
-      '#tree' => TRUE,
-      '#title' => $this->t('Other groups'),
-      '#description' => $description,
-      '#prefix' => '<div id="' . $field_wrapper . '">',
-      '#suffix' => '</div>',
-      '#cardinality' => FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED,
-      '#cardinality_multiple' => TRUE,
-      '#theme' => 'field_multiple_value_form',
-      '#field_name' => $this->fieldDefinition->getName(),
-      '#max_delta' => 1,
-    ];
-
-    $elements['add_more'] = [
-      '#type' => 'button',
-      '#value' => $this->t('Add another item'),
-      '#name' => 'add_another_group',
-      '#ajax' => [
-        'callback' => [$this, 'addMoreAjax'],
-        'wrapper' => $field_wrapper,
-        'effect' => 'fade',
-      ],
-    ];
-
-    $delta = 0;
-
-    $target_type = $this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type');
-
-    $user_groups = Og::getUserGroups(User::load(\Drupal::currentUser()->id()));
-    $user_groups_target_type = isset($user_groups[$target_type]) ? $user_groups[$target_type] : [];
-    $user_group_ids = array_map(function($group) {
-      return $group->id();
-    }, $user_groups_target_type);
-
-    $other_groups_weight_delta = round(count($user_groups) / 2);
-
-    foreach ($items->referencedEntities() as $group) {
-      if (in_array($group->id(), $user_group_ids)) {
-        continue;
-      }
-
-      $elements[$delta] = $this->otherGroupsSingle($delta, $group, $other_groups_weight_delta);
-      $delta++;
-    }
-
-    if (!$form_state->get('other_group_delta')) {
-      $form_state->set('other_group_delta', $delta);
-    }
-
-    // Get the trigger element and check if this the add another item button.
-    $trigger_element = $form_state->getTriggeringElement();
-
-    if ($trigger_element['#name'] == 'add_another_group') {
-      // Increase the number of other groups.
-      $delta = $form_state->get('other_group_delta') + 1;
-      $form_state->set('other_group_delta', $delta);
-    }
-
-    // Add another auto complete field.
-    for ($i = $delta; $i <= $form_state->get('other_group_delta'); $i++) {
-      // Also add one to the weight delta, just to make sure.
-      $elements[$i] = $this->otherGroupsSingle($i, NULL, $other_groups_weight_delta + 1);
-    }
-
-    return $elements;
-  }
-
-  /**
-   * Generating other groups auto complete element.
-   *
-   * @param $delta
-   *   The delta of the new element. Need to be the last delta in order to be
-   *   added in the end of the list.
-   * @param EntityInterface|NULL $entity
-   *   The entity object.
-   * @return array
-   *   A single entity reference input.
-   */
-  public function otherGroupsSingle($delta, EntityInterface $entity = NULL, $weight_delta = 10) {
     return [
-      'target_id' => [
-        // @todo Allow this to be configurable with a widget setting.
-        '#type' => 'entity_autocomplete',
-        '#target_type' => $this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type'),
-        '#selection_handler' => 'og:default',
-        '#selection_settings' => [
-          'other_groups' => TRUE,
-          'field_mode' => 'admin',
-        ],
-        '#default_value' => $entity,
-      ],
-      '_weight' => [
-        '#type' => 'weight',
-        '#title_display' => 'invisible',
-        '#delta' => $weight_delta,
-        '#default_value' => $delta,
-      ],
+      'one' => $one,
+      'two' => $two,
+    ];
+
+  }
+
+  protected function getFieldConfigSetting($field_definition) {
+    return [
+      'type' => 'og_complex',
+      'settings' => [],
+      'third_party_settings' => [],
+      'field_definition' => $field_definition,
     ];
   }
 
@@ -344,4 +119,63 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
     return \Drupal::currentUser()->hasPermission(OgAccess::ADMINISTER_GROUP_PERMISSION);
   }
 
+  /**
+   * Returns the form for a single field widget.
+   *
+   * Field widget form elements should be based on the passed-in $element, which
+   * contains the base form element properties derived from the field
+   * configuration.
+   *
+   * The BaseWidget methods will set the weight, field name and delta values for
+   * each form element. If there are multiple values for this field, the
+   * formElement() method will be called as many times as needed.
+   *
+   * Other modules may alter the form element provided by this function using
+   * hook_field_widget_form_alter() or
+   * hook_field_widget_WIDGET_TYPE_form_alter().
+   *
+   * The FAPI element callbacks (such as #process, #element_validate,
+   * #value_callback, etc.) used by the widget do not have access to the
+   * original $field_definition passed to the widget's constructor. Therefore,
+   * if any information is needed from that definition by those callbacks, the
+   * widget implementing this method, or a
+   * hook_field_widget[_WIDGET_TYPE]_form_alter() implementation, must extract
+   * the needed properties from the field definition and set them as ad-hoc
+   * $element['#custom'] properties, for later use by its element callbacks.
+   *
+   * @param \Drupal\Core\Field\FieldItemListInterface $items
+   *   Array of default values for this field.
+   * @param int $delta
+   *   The order of this item in the array of sub-elements (0, 1, 2, etc.).
+   * @param array $element
+   *   A form element array containing basic properties for the widget:
+   *   - #field_parents: The 'parents' space for the field in the form. Most
+   *       widgets can simply overlook this property. This identifies the
+   *       location where the field values are placed within
+   *       $form_state->getValues(), and is used to access processing
+   *       information for the field through the getWidgetState() and
+   *       setWidgetState() methods.
+   *   - #title: The sanitized element label for the field, ready for output.
+   *   - #description: The sanitized element description for the field, ready
+   *     for output.
+   *   - #required: A Boolean indicating whether the element value is required;
+   *     for required multiple value fields, only the first widget's values are
+   *     required.
+   *   - #delta: The order of this item in the array of sub-elements; see $delta
+   *     above.
+   * @param array $form
+   *   The form structure where widgets are being attached to. This might be a
+   *   full form structure, or a sub-element of a larger form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The current state of the form.
+   *
+   * @return array
+   *   The form elements for a single widget for this field.
+   *
+   * @see hook_field_widget_form_alter()
+   * @see hook_field_widget_WIDGET_TYPE_form_alter()
+   */
+  public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
+    return [];
+  }
 }
