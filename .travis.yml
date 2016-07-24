@@ -9,6 +9,7 @@ php:
 env:
   - DRUPAL_CORE=8.1.x
   - DRUPAL_CORE=8.2.x
+  - CODE_REVIEW=1
 
 mysql:
   database: og
@@ -21,55 +22,16 @@ before_script:
   # We also don't care if that file exists or not on PHP 7.
   - phpenv config-rm xdebug.ini || true
 
+  # Install Composer dependencies.
+  - composer self-update
+  - phpenv rehash
+
   # Remember the current directory for later use in the Drupal installation.
   - TESTDIR=$(pwd)
 
-  # Navigate out of module directory to prevent blown stack by recursive module
-  # lookup.
-  - cd ..
-
-  # Create database.
-  - mysql -e 'create database og'
-
-  # Export database variable for kernel tests.
-  - export SIMPLETEST_DB=mysql://root:@127.0.0.1/og
-
-  # Composer.
-  - sed -i '1i export PATH="$HOME/.composer/vendor/bin:$PATH"' $HOME/.bashrc
-  - source $HOME/.bashrc
-
-  # Install Composer dependencies.
-  - composer self-update
-
-  # Install code sniffer.
-  - composer global require squizlabs/php_codesniffer
-
-  # Coder.
-  - composer global require drupal/coder:dev-8.x-2.x
-  - ln -s ~/.composer/vendor/drupal/coder/coder_sniffer/Drupal ~/.composer/vendor/squizlabs/php_codesniffer/CodeSniffer/Standards/
-  - phpenv rehash
-
-  # Check if there any bad coding standarts
-  - phpcs --standard=Drupal -p --colors $TESTDIR
-
-
-  # Download Drupal 8 core.
-  - travis_retry git clone --branch $DRUPAL_CORE --depth 1 https://git.drupal.org/project/drupal.git
-  - cd drupal
-  - composer install
-
-  # Reference OG in the Drupal site.
-  - ln -s $TESTDIR modules/og
-
-  # Start a web server on port 8888 in the background.
-  - nohup php -S localhost:8888 > /dev/null 2>&1 &
-
-  # Wait until the web server is responding.
-  - until curl -s localhost:8888; do true; done > /dev/null
-
-  # Export web server URL for browser tests.
-  - export SIMPLETEST_BASE_URL=http://localhost:8888
+  - $TRAVIS_BUILD_DIR/travis/prepare_tests.sh
+  - $TRAVIS_BUILD_DIR/travis/prepare_coder.sh
 
 script:
-  # Run the PHPUnit tests which also include the kernel tests.
-  - ./vendor/phpunit/phpunit/phpunit -c ./core/phpunit.xml.dist ./modules/og
+  - $TRAVIS_BUILD_DIR/travis/run_tests.sh
+  - $TRAVIS_BUILD_DIR/travis/run_coder.sh
