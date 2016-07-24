@@ -8,7 +8,9 @@ php:
 
 env:
   - DRUPAL_CORE=8.1.x
+    CODE_REVIEW=0
   - DRUPAL_CORE=8.2.x
+    CODE_REVIEW=0
   - CODE_REVIEW=1
 
 mysql:

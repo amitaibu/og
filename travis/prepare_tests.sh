@@ -7,7 +7,7 @@
 # ---------------------------------------------------------------------------- #
 
 # Do we need to run the coder review?
-if [ "$CODE_REVIEW" = 1 ]; then
+if [ "$CODE_REVIEW" -ne 0 ]; then
   exit 0
 fi
 
