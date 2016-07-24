@@ -100,7 +100,7 @@ class CheckFieldCardinalityTest extends UnitTestCase {
     $entity_prophecy->getEntityTypeId()
       ->shouldBeCalled();
 
-    // If the cardinality is unlimited getting a cound of the field items is
+    // If the cardinality is unlimited getting a count of the field items is
     // never expected, so just check it's not called.
     if ($cardinality === FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED) {
       $entity_prophecy->get($field_name)
