@@ -38,7 +38,6 @@ before_install:
 
   # Install Composer dependencies.
   - composer self-update
-  - phpenv rehash
 
 install:
   # Remember the current directory for later use in the Drupal installation.
@@ -46,6 +45,8 @@ install:
 
   - travis_retry $TRAVIS_BUILD_DIR/travis/prepare_tests.sh
   - $TRAVIS_BUILD_DIR/travis/prepare_coder.sh
+
+  - phpenv rehash
 
 script:
   - $TRAVIS_BUILD_DIR/travis/run_tests.sh
