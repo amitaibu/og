@@ -12,7 +12,7 @@ if [ "$CODE_REVIEW" -ne 0 ]; then
 fi
 
 cd $TRAVIS_BUILD_DIR
-cd ..
+cd ../drupal
 
 # Run the PHPUnit tests which also include the kernel tests.
 phpunit -c ./core/phpunit.xml.dist ./modules/og
