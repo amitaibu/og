@@ -13,5 +13,6 @@ fi
 
 cd $TRAVIS_BUILD_DIR
 cd ..
+
 composer global require drupal/coder:dev-8.x-2.x
 phpcs --config-set installed_paths ~/.composer/vendor/drupal/coder/coder_sniffer

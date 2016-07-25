@@ -11,5 +11,8 @@ if [ "$CODE_REVIEW" -ne 0 ]; then
   exit 0
 fi
 
+cd $TRAVIS_BUILD_DIR
+cd ..
+
 # Run the PHPUnit tests which also include the kernel tests.
 ./vendor/phpunit/phpunit/phpunit -c ./core/phpunit.xml.dist ./modules/og

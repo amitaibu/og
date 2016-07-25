@@ -14,6 +14,7 @@ fi
 
 # Navigate out of module directory to prevent blown stack by recursive module
 # lookup.
+cd $TRAVIS_BUILD_DIR
 cd ..
 
 # Create database.
@@ -32,7 +33,7 @@ cd drupal
 composer install
 
 # Reference OG in the Drupal site.
-ln -s $TESTDIR modules/og
+ln -s $TRAVIS_BUILD_DIR modules/og
 
 # Start a web server on port 8888 in the background.
 nohup php -S localhost:8888 > /dev/null 2>&1 &
