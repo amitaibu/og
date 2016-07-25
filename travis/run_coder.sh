@@ -12,4 +12,4 @@ if [ "$CODE_REVIEW" -ne 1 ]; then
 fi
 
 # Check if there any bad coding standards.
-phpcs --standard=Drupal -p --colors $TRAVIS_BUILD_DIR
+phpcs --standard=$REVIEW_STANDARD -p --colors $TRAVIS_BUILD_DIR
