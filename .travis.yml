@@ -9,8 +9,12 @@ php:
 env:
   - DRUPAL_CORE=8.1.x
     CODE_REVIEW=0
+    SIMPLETEST_DB=mysql://root:@127.0.0.1/og
+    SIMPLETEST_BASE_URL=http://localhost:8888
   - DRUPAL_CORE=8.2.x
     CODE_REVIEW=0
+    SIMPLETEST_DB=mysql://root:@127.0.0.1/og
+    SIMPLETEST_BASE_URL=http://localhost:8888
   - REVIEW_STANDARD="Drupal"
     CODE_REVIEW=1
   - REVIEW_STANDARD="DrupalPractice"

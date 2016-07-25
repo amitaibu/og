@@ -20,9 +20,6 @@ cd ..
 # Create database.
 mysql -e 'create database og'
 
-# Export database variable for kernel tests.
-export SIMPLETEST_DB=mysql://root:@127.0.0.1/og
-
 # Composer.
 sed -i '1i export PATH="$HOME/.composer/vendor/bin:$PATH"' $HOME/.bashrc
 source $HOME/.bashrc
@@ -44,9 +41,6 @@ nohup php -S localhost:8888 > /dev/null 2>&1 &
 
 # Wait until the web server is responding.
 until curl -s localhost:8888; do echo "Waiting for server"; done > /dev/null
-
-# Export web server URL for browser tests.
-export SIMPLETEST_BASE_URL=http://localhost:8888
 
 echo "finish preparing the tests."
 pwd
