@@ -42,6 +42,7 @@ before_install:
 
   # Install Composer dependencies.
   - composer self-update
+  - export PATH="$HOME/.composer/vendor/bin:$PATH"
 
 install:
   # Remember the current directory for later use in the Drupal installation.
