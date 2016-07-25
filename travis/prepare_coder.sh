@@ -12,7 +12,6 @@ if [ "$CODE_REVIEW" -ne 1 ]; then
 fi
 
 cd $TRAVIS_BUILD_DIR
-composer global require squizlabs/php_codesniffer
+cd ..
 composer global require drupal/coder:dev-8.x-2.x
-ln -s ~/.composer/vendor/drupal/coder/coder_sniffer/Drupal ~/.composer/vendor/squizlabs/php_codesniffer/CodeSniffer/Standards/
 phpcs --config-set installed_paths ~/.composer/vendor/drupal/coder/coder_sniffer
