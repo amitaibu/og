@@ -28,7 +28,7 @@ sed -i '1i export PATH="$HOME/.composer/vendor/bin:$PATH"' $HOME/.bashrc
 source $HOME/.bashrc
 
 # Download Drupal 8 core.
-travis_retry git clone --branch $DRUPAL_CORE --depth 1 https://git.drupal.org/project/drupal.git
+git clone --branch $DRUPAL_CORE --depth 1 https://git.drupal.org/project/drupal.git
 cd drupal
 composer install
 

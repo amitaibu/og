@@ -44,7 +44,7 @@ install:
   # Remember the current directory for later use in the Drupal installation.
   - TESTDIR=$(pwd)
 
-  - $TRAVIS_BUILD_DIR/travis/prepare_tests.sh
+  - travis_retry $TRAVIS_BUILD_DIR/travis/prepare_tests.sh
   - $TRAVIS_BUILD_DIR/travis/prepare_coder.sh
 
 script:
