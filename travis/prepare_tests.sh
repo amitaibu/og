@@ -32,14 +32,21 @@ git clone --branch $DRUPAL_CORE --depth 1 https://git.drupal.org/project/drupal.
 cd drupal
 composer install
 
+echo "Finish composer."
+
 # Reference OG in the Drupal site.
 ln -s $TRAVIS_BUILD_DIR modules/og
+
+echo "Finish symlink."
 
 # Start a web server on port 8888 in the background.
 nohup php -S localhost:8888 > /dev/null 2>&1 &
 
 # Wait until the web server is responding.
-until curl -s localhost:8888; do true; done > /dev/null
+until curl -s localhost:8888; do echo "Waiting for server"; done > /dev/null
 
 # Export web server URL for browser tests.
 export SIMPLETEST_BASE_URL=http://localhost:8888
+
+echo "finish preparing the tests."
+pwd
