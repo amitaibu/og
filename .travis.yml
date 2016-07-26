@@ -58,6 +58,9 @@ before_script:
   - cd drupal
   - composer install
 
+  # Install Composer dependencies on 8.1.x.
+  - test ${DRUPAL_CORE} == "8.1.x" && composer self-update && composer install || true
+
   # Reference OG in the Drupal site.
   - ln -s $TESTDIR modules/og
 
