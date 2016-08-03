@@ -22,3 +22,8 @@ services:
   plugin.manager.og.fields:
     class: Drupal\og\OgFieldsPluginManager
     parent: default_plugin_manager
+  og.node_route_context:
+    class: Drupal\og\ContextProvider\OgRouteContext
+    arguments: ['@current_route_match', '@og.group.manager']
+    tags:
+      - { name: 'context_provider' }
