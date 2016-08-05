@@ -3,7 +3,9 @@
 namespace Drupal\og;
 
 use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Entity\EntityFieldManager;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\field\Entity\FieldConfig;
@@ -23,6 +25,65 @@ class Og implements OgInterface{
    * @var array
    */
   protected $cache = [];
+
+
+  /**
+   * The group manager service.
+   *
+   * @var \Drupal\og\GroupManager
+   */
+  protected $groupManager;
+
+  /**
+   * The OG permission handler service.
+   *
+   * @var \Drupal\og\OgPermissionHandler
+   */
+  protected $ogPermissionHandler;
+
+  /**
+   * The OG fields plugin manager service.
+   *
+   * @var \Drupal\og\OgFieldsPluginManager
+   */
+  protected $ogField;
+
+  /**
+   * The entity field manager service.
+   *
+   * @var \Drupal\Core\Entity\EntityFieldManager
+   */
+  protected $entityField;
+
+  /**
+   * The selection plugin manager service.
+   * 
+   * @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager
+   */
+  protected $entityReferenceSelection;
+
+
+  /**
+   * Constructs an Og service.
+   *
+   * @param \Drupal\og\GroupManager $group_manager
+   *   The group manager service.
+   * @param \Drupal\og\OgPermissionHandler $og_permission_handler
+   *   The OG permission handler service.
+   * @param \Drupal\og\OgFieldsPluginManager $og_field
+   *   The OG fields plugin manager service.
+   * @param \Drupal\Core\Entity\EntityFieldManager $entity_field
+   *   The entity field manager service.
+   * @param \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager $entity_reference_selection
+   *   The selection plugin manager service.
+   */
+  public function __construct(GroupManager $group_manager, OgPermissionHandler $og_permission_handler, OgFieldsPluginManager $og_field, EntityFieldManager $entity_field, SelectionPluginManager $entity_reference_selection) {
+    $this->groupManager = $group_manager;
+    $this->ogPermissionHandler = $og_permission_handler;
+    $this->ogField = $og_field;
+    $this->entityField = $entity_field;
+    $this->entityReferenceSelection = $entity_reference_selection;
+  }
 
   /**
    * @{@inheritdoc}
