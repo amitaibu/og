@@ -385,4 +385,5 @@ interface OgInterface {
    * Resets the static cache.
    */
   public function reset();
+
 }

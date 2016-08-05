@@ -17,7 +17,7 @@ use Drupal\og\Entity\OgRole;
 /**
  * A helper class for OG.
  */
-class Og implements OgInterface{
+class Og implements OgInterface {
 
   /**
    * Static cache for heavy queries.
@@ -61,7 +61,6 @@ class Og implements OgInterface{
    * @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager
    */
   protected $entityReferenceSelection;
-
 
   /**
    * Constructs an Og service.
