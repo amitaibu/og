@@ -57,7 +57,7 @@ class Og implements OgInterface{
 
   /**
    * The selection plugin manager service.
-   * 
+   *
    * @var \Drupal\Core\Entity\EntityReferenceSelection\SelectionPluginManager
    */
   protected $entityReferenceSelection;

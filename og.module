@@ -23,6 +23,17 @@ use Drupal\user\EntityOwnerInterface;
  */
 define('OG_DEFAULT_ACCESS_FIELD', 'og_roles_permissions');
 
+
+/**
+ * Return the Og service.
+ *
+ * @return \Drupal\og\OgInterface
+ *   The OG service.
+ */
+function og() {
+  return \Drupal::service('og');
+}
+
 /**
  * Implements hook_entity_insert().
  *
