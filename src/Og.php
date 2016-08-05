@@ -13,9 +13,9 @@ use Drupal\og\Entity\OgMembership;
 use Drupal\og\Entity\OgRole;
 
 /**
- * A static helper class for OG.
+ * A helper class for OG.
  */
-class Og {
+class Og implements OgInterface{
 
   /**
    * Static cache for heavy queries.
