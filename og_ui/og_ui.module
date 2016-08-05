@@ -55,21 +55,21 @@ function og_ui_entity_type_save(EntityInterface $entity) {
   $entity_type_id = $definition->getBundleOf();
 
   // Add/remove the group itself.
-  $is_group = Og::isGroup($entity_type_id, $bundle);
+  $is_group = og()->isGroup($entity_type_id, $bundle);
   if ($entity->og_is_group != $is_group) {
     if ($entity->og_is_group) {
-      Og::groupManager()->addGroup($entity_type_id, $bundle);
+      og()->groupManager()->addGroup($entity_type_id, $bundle);
     }
     else {
-      Og::groupManager()->removeGroup($entity_type_id, $bundle);
+      og()->groupManager()->removeGroup($entity_type_id, $bundle);
     }
   }
 
   // Add remove the relevant field.
-  $is_group_content = Og::isGroupContent($entity_type_id, $bundle);
+  $is_group_content = og()->isGroupContent($entity_type_id, $bundle);
   if ($entity->og_group_content_bundle != $is_group_content) {
     if ($entity->og_group_content_bundle) {
-      Og::createField(OgGroupAudienceHelper::DEFAULT_FIELD, $entity_type_id, $bundle);
+      og()->createField(OgGroupAudienceHelper::DEFAULT_FIELD, $entity_type_id, $bundle);
     }
     elseif ($field = FieldConfig::loadByName($entity_type_id, $bundle, OgGroupAudienceHelper::DEFAULT_FIELD)) {
       $field->delete();

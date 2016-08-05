@@ -40,7 +40,7 @@ function og() {
  * Subscribe the group manager.
  */
 function og_entity_insert(EntityInterface $entity) {
-  if (!Og::isGroup($entity->getEntityTypeId(), $entity->bundle())) {
+  if (!og()->isGroup($entity->getEntityTypeId(), $entity->bundle())) {
     // Not a group entity.
     return;
   }
@@ -54,7 +54,7 @@ function og_entity_insert(EntityInterface $entity) {
     return;
   }
 
-  $membership = Og::createMembership($entity, $entity->getOwner());
+  $membership = og()->createMembership($entity, $entity->getOwner());
   $membership->save();
 }
 
@@ -62,7 +62,7 @@ function og_entity_insert(EntityInterface $entity) {
  * Implements hook_entity_predelete().
  */
 function og_entity_predelete(EntityInterface $entity) {
-  if (Og::isGroup($entity->getEntityTypeId(), $entity->bundle())) {
+  if (og()->isGroup($entity->getEntityTypeId(), $entity->bundle())) {
     // Register orphaned group content for deletion, if this option has been
     // enabled.
     $config = \Drupal::config('og.settings');
@@ -99,7 +99,7 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
   $entity_type_id = $entity->getEntityTypeId();
   $bundle_id = $entity->bundle();
 
-  if (!Og::isGroup($entity_type_id, $bundle_id) && !Og::isGroupContent($entity_type_id, $bundle_id)) {
+  if (!og()->isGroup($entity_type_id, $bundle_id) && !og()->isGroupContent($entity_type_id, $bundle_id)) {
     return AccessResult::neutral();
   }
 
@@ -131,7 +131,7 @@ function og_entity_access(EntityInterface $entity, $operation, AccountInterface 
 function og_entity_create_access(AccountInterface $account, array $context, $bundle) {
   $entity_type_id = $context['entity_type_id'];
 
-  if (!Og::isGroupContent($entity_type_id, $bundle)) {
+  if (!og()->isGroupContent($entity_type_id, $bundle)) {
     // Not a group content.
     return AccessResult::neutral();
   }
@@ -165,7 +165,7 @@ function og_entity_create_access(AccountInterface $account, array $context, $bun
       continue;
     }
 
-    $handler = Og::getSelectionHandler($field_definition);
+    $handler = og()->getSelectionHandler($field_definition);
 
     if ($handler->getReferenceableEntities()) {
       return Accessresult::neutral();
