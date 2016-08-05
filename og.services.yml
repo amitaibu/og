@@ -1,4 +1,8 @@
 services:
+  og:
+    class: Drupal\og\Og
+    arguments: ['@og.group.manager', '@og.permissions', '@plugin.manager.og.fields', '@entity_field.manager', '@plugin.manager.entity_reference_selection']
+
   og.access:
     class: Drupal\og\OgAccess
     arguments: ['@config.factory', '@current_user', '@module_handler']
