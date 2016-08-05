@@ -85,7 +85,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function createField($plugin_id, $entity_type, $bundle, array $settings = []) {
     $settings = $settings + [
@@ -168,7 +168,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getUserGroupIds(AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE]) {
     $group_ids = [];
@@ -183,7 +183,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getUserGroups(AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE]) {
     $groups = [];
@@ -196,7 +196,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getMemberships(AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE]) {
     // Get a string identifier of the states, so we can retrieve it from cache.
@@ -233,7 +233,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getMembership(EntityInterface $group, AccountInterface $user, array $states = [OgMembershipInterface::STATE_ACTIVE]) {
     foreach (self::getMemberships($user, $states) as $membership) {
@@ -244,7 +244,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function createMembership(EntityInterface $group, AccountInterface $user, $membership_type = OgMembershipInterface::TYPE_DEFAULT) {
     /** @var OgMembershipInterface $membership */
@@ -257,7 +257,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getGroupIds(EntityInterface $entity, $group_type_id = NULL, $group_bundle = NULL) {
     // This does not work for user entities.
@@ -320,7 +320,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getGroups(EntityInterface $entity, $group_type_id = NULL, $group_bundle = NULL) {
     $groups = [];
@@ -333,7 +333,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getGroupCount(EntityInterface $entity, $group_type_id = NULL, $group_bundle = NULL) {
     return array_reduce(self::getGroupIds($entity, $group_type_id, $group_bundle), function ($carry, $item) {
@@ -342,7 +342,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getGroupContentIds(EntityInterface $entity, array $entity_types = []) {
     $group_content = [];
@@ -385,7 +385,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function isMember(EntityInterface $group, AccountInterface $user, $states = [OgMembershipInterface::STATE_ACTIVE]) {
     $group_ids = self::getUserGroupIds($user, $states);
@@ -394,49 +394,49 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function isMemberPending(EntityInterface $group, AccountInterface $user) {
     return self::isMember($group, $user, [OgMembershipInterface::STATE_PENDING]);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function isMemberBlocked(EntityInterface $group, AccountInterface $user) {
     return self::isMember($group, $user, [OgMembershipInterface::STATE_BLOCKED]);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function isGroup($entity_type_id, $bundle_id) {
     return self::groupManager()->isGroup($entity_type_id, $bundle_id);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function isGroupContent($entity_type_id, $bundle_id) {
     return (bool) OgGroupAudienceHelper::getAllGroupAudienceFields($entity_type_id, $bundle_id);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function addGroup($entity_type_id, $bundle_id) {
     self::groupManager()->addGroup($entity_type_id, $bundle_id);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function removeGroup($entity_type_id, $bundle_id) {
     return self::groupManager()->removeGroup($entity_type_id, $bundle_id);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function groupManager() {
     // @todo store static reference for this?
@@ -444,21 +444,21 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getRole($entity_type_id, $bundle, $role_name) {
     return OgRole::load($entity_type_id . '-' . $bundle . '-' . $role_name);
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function permissionHandler() {
     return \Drupal::service('og.permissions');
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function invalidateCache(array $group_ids = array()) {
     // @todo We should not be using drupal_static() review and remove.
@@ -491,7 +491,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getFieldBaseDefinition($plugin_id) {
     /** @var OgFieldsPluginManager $plugin_manager */
@@ -504,7 +504,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function getSelectionHandler(FieldDefinitionInterface $field_definition, array $options = []) {
     if (!OgGroupAudienceHelper::isGroupAudienceField($field_definition)) {
@@ -527,7 +527,7 @@ class Og implements OgInterface {
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
   public function reset() {
     self::$cache = [];
