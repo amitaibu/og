@@ -364,7 +364,7 @@ interface OgInterface {
    *   An array with the field storage config and field config definitions, or
    *   FALSE if none found.
    */
-  protected static function getFieldBaseDefinition($plugin_id);
+  public function getFieldBaseDefinition($plugin_id);
 
   /**
    * Get the selection handler for an audience field attached to entity.
