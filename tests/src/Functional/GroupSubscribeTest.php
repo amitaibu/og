@@ -5,6 +5,7 @@ namespace Drupal\Tests\og\Functional;
 use Drupal\Component\Utility\Unicode;
 use Drupal\node\Entity\Node;
 use Drupal\og\Entity\OgMembershipType;
+use Drupal\og\Entity\OgRole;
 use Drupal\og\Og;
 use Drupal\og\OgMembershipInterface;
 use Drupal\og\OgRoleInterface;
@@ -136,8 +137,7 @@ class GroupSubscribeTest extends BrowserTestBase {
     ]);
     $this->group4->save();
 
-    /** @var \Drupal\og\Entity\OgRole $role */
-    $role = Og::getRole('node', $this->groupBundle1, OgRoleInterface::ANONYMOUS);
+    $role = OgRole::loadByGroupTypeGroupBundleAndName('node', $this->groupBundle1, OgRoleInterface::ANONYMOUS);
     $role
       ->grantPermission('subscribe without approval')
       ->save();
