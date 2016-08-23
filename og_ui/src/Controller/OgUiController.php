@@ -7,6 +7,8 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Link;
 use Drupal\og\GroupManager;
+use Drupal\og_ui\OgUi;
+use Drupal\og_ui\OgUiAdminRouteInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -115,6 +117,41 @@ class OgUiController extends ControllerBase {
    */
   public function rolesPermissionsOverviewTitleCallback($type) {
     return $this->t('OG @type overview', ['@type' => $type]);
+  }
+
+  /**
+   * Show all the available admin pages.
+   *
+   * @return mixed
+   *   List of avialable task for the current group.
+   */
+  public function ogTasks() {
+    $entity = OgUi::getEntity();
+    $plugins = OgUi::getGroupAdminPlugins();
+    $list = [];
+    foreach ($plugins as $plugin) {
+
+      $plugin = $plugin->setGroup($entity);
+
+      if (!$plugin->access()) {
+        // The user does not have permission for the current admin page.
+        continue;
+      }
+      $definition = $plugin->getPluginDefinition();
+
+      $list[] = [
+        'title' => $definition['title'],
+        'description' => $definition['description'],
+        'url' => $plugin->getUrlFromRoute(OgUiAdminRouteInterface::MAIN, \Drupal::request()),
+      ];
+    }
+
+    return [
+      'roles_table' => [
+        '#theme' => 'admin_block_content',
+        '#content' => $list,
+      ],
+    ];
   }
 
 }
