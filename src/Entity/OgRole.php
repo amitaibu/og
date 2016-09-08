@@ -220,6 +220,13 @@ class OgRole extends Role implements OgRoleInterface {
   /**
    * {@inheritdoc}
    */
+  public static function loadByGroupTypeGroupBundleAndName($entity_type_id, $bundle, $role_name) {
+    return self::load($entity_type_id . '-' . $bundle . '-' . $role_name);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function save() {
     // The ID of a new OgRole has to consist of the entity type ID, bundle ID
     // and role name, separated by dashes.

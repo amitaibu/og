@@ -309,23 +309,6 @@ class Og {
   }
 
   /**
-   * Get a role by the group's bundle and role name.
-   *
-   * @param string $entity_type_id
-   *   The group entity type ID.
-   * @param string $bundle
-   *   The group bundle name.
-   * @param string $role_name
-   *   The role name.
-   *
-   * @return \Drupal\og\OgRoleInterface|null
-   *   The OG role object, or NULL if a matching role was not found.
-   */
-  public static function getRole($entity_type_id, $bundle, $role_name) {
-    return OgRole::load($entity_type_id . '-' . $bundle . '-' . $role_name);
-  }
-
-  /**
    * Return the og permission handler instance.
    *
    * @return \Drupal\og\OgPermissionHandler
