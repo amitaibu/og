@@ -145,7 +145,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
       }
     }
 
-    if ($elements) {
+    if (!empty($elements)) {
       $elements += array(
         '#theme' => 'field_multiple_value_form',
         '#field_name' => $field_name,

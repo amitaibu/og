@@ -118,7 +118,7 @@ class OgAccess implements OgAccessInterface {
     // As Og::isGroup depends on this config, we retrieve it here and set it as
     // the minimal caching data.
     $config = $this->configFactory->get('og.settings');
-    $cacheable_metadata = (new CacheableMetadata)
+    $cacheable_metadata = (new CacheableMetadata())
         ->addCacheableDependency($config);
 
     if (!$this->groupTypeManager->isGroup($group_type_id, $bundle)) {
@@ -171,7 +171,7 @@ class OgAccess implements OgAccessInterface {
     $post_alter_cache = $this->getPermissionsCache($group, $user, FALSE);
 
     // To reduce the number of SQL queries, we cache the user's permissions.
-    if (!$pre_alter_cache) {
+    if (empty($pre_alter_cache)) {
       $permissions = [];
       $user_is_group_admin = FALSE;
       if ($membership = Og::getMembership($group, $user)) {
@@ -257,7 +257,7 @@ class OgAccess implements OgAccessInterface {
     // The entity might be a user or a non-user entity.
     $groups = $entity->getEntityTypeId() == 'user' ? $this->membershipManager->getUserGroups($entity) : $this->membershipManager->getGroups($entity);
 
-    if ($is_group_content && $groups) {
+    if ($is_group_content && !empty($groups)) {
       $forbidden = AccessResult::forbidden()->addCacheTags($cache_tags);
       foreach ($groups as $entity_groups) {
         foreach ($entity_groups as $group) {
@@ -340,7 +340,7 @@ class OgAccess implements OgAccessInterface {
       return $permission->getOperation() === $operation && in_array($permission->getOwner(), $ownerships);
     });
 
-    if ($permissions) {
+    if (!empty($permissions)) {
       foreach ($permissions as $permission) {
         $user_access = $this->userAccess($group_entity, $permission->getName(), $user);
         if ($user_access->isAllowed()) {

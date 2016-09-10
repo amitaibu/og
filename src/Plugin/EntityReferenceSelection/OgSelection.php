@@ -65,9 +65,9 @@ class OgSelection extends DefaultSelection {
     // bundle defined as group.
     $query = $this->getSelectionHandler()->buildEntityQuery($match, $match_operator);
     $target_type = $this->configuration['target_type'];
-    $entityDefinition = \Drupal::entityTypeManager()->getDefinition($target_type);
+    $definition = \Drupal::entityTypeManager()->getDefinition($target_type);
 
-    if ($bundle_key = $entityDefinition->getKey('bundle')) {
+    if ($bundle_key = $definition->getKey('bundle')) {
       $bundles = Og::groupTypeManager()->getAllGroupBundles($target_type);
 
       if (!$bundles) {
@@ -78,11 +78,11 @@ class OgSelection extends DefaultSelection {
     }
 
     $user_groups = $this->getUserGroups();
-    if (!$user_groups) {
+    if (empty($user_groups)) {
       return $query;
     }
 
-    $identifier_key = $entityDefinition->getKey('id');
+    $identifier_key = $definition->getKey('id');
 
     $ids = [];
     if (!empty($this->configuration['handler_settings']['field_mode']) && $this->configuration['handler_settings']['field_mode'] == 'admin') {
@@ -91,7 +91,7 @@ class OgSelection extends DefaultSelection {
         $ids[] = $group->id();
       }
 
-      if ($ids) {
+      if (!empty($ids)) {
         $query->condition($identifier_key, $ids, 'NOT IN');
       }
     }
@@ -100,7 +100,7 @@ class OgSelection extends DefaultSelection {
       foreach ($user_groups as $group) {
         $ids[] = $group->id();
       }
-      if ($ids) {
+      if (!empty($ids)) {
         $query->condition($identifier_key, $ids, 'IN');
       }
       else {

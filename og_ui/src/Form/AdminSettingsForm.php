@@ -66,7 +66,6 @@ class AdminSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildForm($form, $form_state);
     $config_og = $this->config('og.settings');
-    $config_og_ui = $this->config('og_ui.settings');
 
     $form['og_group_manager_full_access'] = [
       '#type' => 'checkbox',
@@ -83,7 +82,6 @@ class AdminSettingsForm extends ConfigFormBase {
     ];
 
     // @todo: Port og_ui_admin_people_view.
-
     $form['og_delete_orphans'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Delete orphans'),
@@ -121,7 +119,7 @@ class AdminSettingsForm extends ConfigFormBase {
 
       // Show the configuration options for the chosen plugin.
       $configuration = $plugin->configurationForm($form, $form_state);
-      if ($configuration) {
+      if (!empty($configuration)) {
         $form['og_delete_orphans_options_' . $id] = $configuration + [
           '#states' => [
             'visible' => [

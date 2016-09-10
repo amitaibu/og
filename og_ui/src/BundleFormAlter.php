@@ -152,7 +152,7 @@ class BundleFormAlter {
       '#description' => empty($target_bundles) ? t('There are no group bundles defined.') : '',
     ];
 
-    if ($target_types) {
+    if (!empty($target_types)) {
       // If a group audience field already exists, use its value. Otherwise fall
       // back to the first entity type that was returned.
       reset($target_types);

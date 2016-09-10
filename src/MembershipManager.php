@@ -92,7 +92,7 @@ class MembershipManager implements MembershipManagerInterface {
       ->getQuery()
       ->condition('uid', $user->id());
 
-    if ($states) {
+    if (!empty($states)) {
       $query->condition('state', $states, 'IN');
     }
 
@@ -239,7 +239,7 @@ class MembershipManager implements MembershipManagerInterface {
       ->condition('type', OgGroupAudienceHelper::GROUP_REFERENCE);
 
     // Optionally filter group content entity types.
-    if ($entity_types) {
+    if (!empty($entity_types)) {
       $query->condition('entity_type', $entity_types, 'IN');
     }
 
