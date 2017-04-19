@@ -1,0 +1,6 @@
+#!/bin/bash
+commit=`git log --pretty=format:"%s" -n 1`
+
+if [[ $commit != *"[skip sniff]"* ]]; then
+  bash code_sniffer.sh
+fi
