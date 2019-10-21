@@ -6,8 +6,11 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Link;
+use Drupal\og\Og;
 use Drupal\og\GroupTypeManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * The OG UI controller.
@@ -86,7 +89,7 @@ class OgUiController extends ControllerBase {
             'data' => $definition->getLabel() . ' - ' . $bundle_info[$bundle]['label'],
           ],
           [
-            'data' => Link::createFromRoute($action, 'og_ui.' . $type . '_form', [
+            'data' => Link::createFromRoute($action, 'og_ui.' . $type . '_overview', [
               'entity_type' => $entity_type,
               'bundle' => $bundle,
             ]),
@@ -106,7 +109,7 @@ class OgUiController extends ControllerBase {
   }
 
   /**
-   * Title callback for rolesPermissionsOverviewPage.
+   * Title callback for rolesPermissionsOverviewPage().
    *
    * @param string $type
    *   The type of overview, either 'roles' or 'permissions'.
@@ -116,6 +119,84 @@ class OgUiController extends ControllerBase {
    */
   public function rolesPermissionsOverviewTitleCallback($type) {
     return $this->t('OG @type overview', ['@type' => $type]);
+  }
+
+  /**
+   * Returns the OG role overview page for a given entity type and bundle.
+   *
+   * @param string $entity_type
+   *   The entity type for which to show the OG roles.
+   * @param string $bundle
+   *   The bundle for which to show the OG roles.
+   *
+   * @return array
+   *   The overview as a render array.
+   */
+  public function rolesOverviewPage($entity_type = '', $bundle = '') {
+    // Return a 404 error when this is not a group.
+    if (!Og::isGroup($entity_type, $bundle)) {
+      throw new NotFoundHttpException();
+    }
+
+    $rows = [];
+
+    $properties = [
+      'group_type' => $entity_type,
+      'group_bundle' => $bundle,
+    ];
+    /** @var \Drupal\og\Entity\OgRole $role */
+    foreach ($this->entityTypeManager->getStorage('og_role')->loadByProperties($properties) as $role) {
+      // Add the role name cell.
+      $columns = [['data' => $role->getLabel()]];
+
+      // Add the edit role link if the role is editable.
+      if (!$role->isLocked()) {
+        $columns[] = [
+          'data' => Link::createFromRoute($this->t('Edit role'), 'entity.og_role.edit_form', [
+            'og_role' => $role->id(),
+          ]),
+        ];
+      }
+      else {
+        $columns[] = ['data' => $this->t('Locked')];
+      }
+
+      // Add the edit permissions link.
+      $columns[] = [
+        'data' => Link::createFromRoute($this->t('Edit permissions'), 'og_ui.permissions_edit_form', [
+          'og_role' => $role->id(),
+        ]),
+      ];
+
+      $rows[] = $columns;
+    }
+
+    return [
+      '#theme' => 'table',
+      '#header' => [
+        $this->t('Role name'),
+        ['data' => $this->t('Operations'), 'colspan' => 2],
+      ],
+      '#rows' => $rows,
+      '#empty' => $this->t('No roles available.'),
+    ];
+  }
+
+  /**
+   * Title callback for the roles overview page.
+   *
+   * @param string $entity_type
+   *   The group entity type.
+   * @param string $bundle
+   *   The group bundle.
+   *
+   * @return \Drupal\Core\StringTranslation\TranslatableMarkup
+   */
+  public function rolesOverviewPageTitleCallback($entity_type, $bundle) {
+    return $this->t('OG @type - @bundle roles', [
+      '@type' => $this->entityTypeManager->getDefinition($entity_type)->getLabel(),
+      '@bundle' => $this->entityTypeBundleInfo->getBundleInfo($entity_type)[$bundle]['label'],
+    ]);
   }
 
 }

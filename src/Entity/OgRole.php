@@ -16,11 +16,23 @@ use Drupal\user\Entity\Role;
  * @ConfigEntityType(
  *   id = "og_role",
  *   label = @Translation("OG role"),
+ *   handlers = {
+ *     "form" = {
+ *       "default" = "Drupal\og_ui\Form\OgRoleForm",
+ *       "delete" = "Drupal\Core\Entity\EntityDeleteForm"
+ *     }
+ *   },
  *   static_cache = TRUE,
  *   entity_keys = {
  *     "id" = "id",
  *     "label" = "label",
  *     "weight" = "weight"
+ *   },
+ *   links = {
+ *     "delete-form" = "/admin/config/group/role/{og_role}/delete",
+ *     "edit-form" = "/admin/config/group/role/{og_role}/edit",
+ *     "edit-permissions-form" = "/admin/config/group/permission/{og_role}/edit",
+ *     "collection" = "/admin/config/group/roles",
  *   },
  *   config_export = {
  *     "id",
@@ -133,6 +145,13 @@ class OgRole extends Role implements OgRoleInterface {
       throw new \InvalidArgumentException("'$role_type' is not a valid role type.");
     }
     return $this->set('role_type', $role_type);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isLocked() {
+    return $this->get('role_type') !== OgRoleInterface::ROLE_TYPE_STANDARD;
   }
 
   /**
