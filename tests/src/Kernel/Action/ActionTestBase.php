@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\Tests\og\Kernel\Action;
 
 use Drupal\Core\Access\AccessResultAllowed;
@@ -78,7 +80,7 @@ abstract class ActionTestBase extends KernelTestBase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->installEntitySchema('og_membership');
@@ -143,7 +145,7 @@ abstract class ActionTestBase extends KernelTestBase {
     $this->users['authenticated'] = $this->createUser();
 
     // An administrator with the right to administer groups globally.
-    $this->users['administrator'] = $this->createUser(['administer group']);
+    $this->users['administrator'] = $this->createUser(['administer organic groups']);
 
     // A normal member of the test group.
     $this->users['member'] = $this->createUser();
@@ -160,11 +162,17 @@ abstract class ActionTestBase extends KernelTestBase {
     // A group administrator. This is a special case since this role is
     // considered to have all permissions.
     $this->users['group_administrator'] = $this->createUser();
-    $this->memberships['group_administrator'] = $this->createOgMembership($this->group, $this->users['group_administrator'], [OgRoleInterface::AUTHENTICATED, OgRoleInterface::ADMINISTRATOR]);
+    $this->memberships['group_administrator'] = $this->createOgMembership($this->group, $this->users['group_administrator'], [
+      OgRoleInterface::AUTHENTICATED,
+      OgRoleInterface::ADMINISTRATOR,
+    ]);
 
     // A group moderator that has the right to administer group members.
     $this->users['group_moderator'] = $this->createUser();
-    $this->memberships['group_moderator'] = $this->createOgMembership($this->group, $this->users['group_moderator'], [OgRoleInterface::AUTHENTICATED, 'moderator']);
+    $this->memberships['group_moderator'] = $this->createOgMembership($this->group, $this->users['group_moderator'], [
+      OgRoleInterface::AUTHENTICATED,
+      'moderator',
+    ]);
   }
 
   /**

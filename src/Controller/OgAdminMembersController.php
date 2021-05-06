@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\og\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
@@ -7,7 +9,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\views\Views;
 
 /**
- * OgAdminMembersController class.
+ * Displays the members administration page.
  */
 class OgAdminMembersController extends ControllerBase {
 

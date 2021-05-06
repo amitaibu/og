@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\og\Plugin\Field\FieldWidget;
 
 use Drupal\Component\Utility\Html;
@@ -9,7 +11,6 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\EntityReferenceAutocompleteWidget;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\og\OgAccess;
 
 /**
  * Plugin implementation of the 'entity_reference autocomplete' widget.
@@ -31,7 +32,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $parent = parent::formElement($items, $delta, $element, $form, $form_state);
-    // todo: fix the definition in th UI level.
+    // @todo Fix the definition in the UI level.
     $parent['target_id']['#selection_handler'] = 'og:default';
     $parent['target_id']['#selection_settings']['field_mode'] = 'default';
 
@@ -109,7 +110,10 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
       // table.
       if ($is_multiple) {
         $element = [
-          '#title' => $this->t('@title (value @number)', ['@title' => $title, '@number' => $delta + 1]),
+          '#title' => $this->t('@title (value @number)', [
+            '@title' => $title,
+            '@number' => $delta + 1,
+          ]),
           '#title_display' => 'invisible',
           '#description' => '',
         ];
@@ -166,7 +170,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
         $elements['add_more'] = [
           '#type' => 'submit',
           '#name' => strtr($id_prefix, '-', '_') . '_add_more',
-          '#value' => t('Add another item'),
+          '#value' => $this->t('Add another item'),
           '#attributes' => ['class' => ['field-add-more-submit']],
           '#limit_validation_errors' => [array_merge($parents, [$field_name])],
           '#submit' => [[get_class($this), 'addMoreSubmit']],
@@ -258,7 +262,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
     // Get the trigger element and check if this the add another item button.
     $trigger_element = $form_state->getTriggeringElement();
 
-    if ($trigger_element['#name'] == 'add_another_group') {
+    if (!empty($trigger_element) && $trigger_element['#name'] == 'add_another_group') {
       // Increase the number of other groups.
       $delta = $form_state->get('other_group_delta') + 1;
       $form_state->set('other_group_delta', $delta);
@@ -287,17 +291,22 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
    * @return array
    *   A single entity reference input.
    */
-  public function otherGroupsSingle($delta, EntityInterface $entity = NULL, $weight_delta = 10) {
+  public function otherGroupsSingle(int $delta, ?EntityInterface $entity = NULL, $weight_delta = 10) {
+    $selection_settings = [
+      'other_groups' => TRUE,
+      'field_mode' => 'admin',
+    ];
+    if ($this->getFieldSetting('handler_settings')) {
+      $selection_settings += $this->getFieldSetting('handler_settings');
+    }
+
     return [
       'target_id' => [
         // @todo Allow this to be configurable with a widget setting.
         '#type' => 'entity_autocomplete',
         '#target_type' => $this->fieldDefinition->getFieldStorageDefinition()->getSetting('target_type'),
         '#selection_handler' => 'og:default',
-        '#selection_settings' => [
-          'other_groups' => TRUE,
-          'field_mode' => 'admin',
-        ],
+        '#selection_settings' => $selection_settings,
         '#default_value' => $entity,
       ],
       '_weight' => [
@@ -348,7 +357,7 @@ class OgComplex extends EntityReferenceAutocompleteWidget {
    */
   protected function isGroupAdmin() {
     // @todo Inject current user service as a dependency.
-    return \Drupal::currentUser()->hasPermission(OgAccess::ADMINISTER_GROUP_PERMISSION);
+    return \Drupal::currentUser()->hasPermission('administer organic groups');
   }
 
 }

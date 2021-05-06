@@ -1,18 +1,23 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\og\EventSubscriber;
 
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\og\Event\DefaultRoleEventInterface;
+use Drupal\og\Event\GroupContentEntityOperationAccessEventInterface;
 use Drupal\og\Event\OgAdminRoutesEventInterface;
 use Drupal\og\Event\PermissionEventInterface;
 use Drupal\og\GroupContentOperationPermission;
 use Drupal\og\GroupPermission;
 use Drupal\og\OgAccess;
+use Drupal\og\OgAccessInterface;
 use Drupal\og\OgRoleInterface;
 use Drupal\og\PermissionManagerInterface;
+use Drupal\user\EntityOwnerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -44,6 +49,13 @@ class OgEventSubscriber implements EventSubscriberInterface {
   protected $entityTypeBundleInfo;
 
   /**
+   * The OG access service.
+   *
+   * @var \Drupal\og\OgAccessInterface
+   */
+  protected $ogAccess;
+
+  /**
    * Constructs an OgEventSubscriber object.
    *
    * @param \Drupal\og\PermissionManagerInterface $permission_manager
@@ -52,11 +64,14 @@ class OgEventSubscriber implements EventSubscriberInterface {
    *   The entity type manager.
    * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
    *   The service providing information about bundles.
+   * @param \Drupal\og\OgAccessInterface $og_access
+   *   The OG access service.
    */
-  public function __construct(PermissionManagerInterface $permission_manager, EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info) {
+  public function __construct(PermissionManagerInterface $permission_manager, EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, OgAccessInterface $og_access) {
     $this->permissionManager = $permission_manager;
     $this->entityTypeManager = $entity_type_manager;
     $this->entityTypeBundleInfo = $entity_type_bundle_info;
+    $this->ogAccess = $og_access;
   }
 
   /**
@@ -74,6 +89,7 @@ class OgEventSubscriber implements EventSubscriberInterface {
       ],
       DefaultRoleEventInterface::EVENT_NAME => [['provideDefaultRoles']],
       OgAdminRoutesEventInterface::EVENT_NAME => [['provideOgAdminRoutes']],
+      GroupContentEntityOperationAccessEventInterface::EVENT_NAME => [['checkGroupContentEntityOperationAccess']],
     ];
   }
 
@@ -86,55 +102,61 @@ class OgEventSubscriber implements EventSubscriberInterface {
   public function provideDefaultOgPermissions(PermissionEventInterface $event) {
     $event->setPermissions([
       new GroupPermission([
-        'name' => OgAccess::UPDATE_GROUP_PERMISSION,
-        'title' => t('Edit group'),
-        'description' => t('Edit the group. Note: This permission controls only node entity type groups.'),
-        'default roles' => [OgRoleInterface::ADMINISTRATOR],
-      ]),
-      new GroupPermission([
         'name' => OgAccess::ADMINISTER_GROUP_PERMISSION,
-        'title' => t('Administer group'),
-        'description' => t('Manage group members and content in the group.'),
+        'title' => $this->t('Administer group'),
+        'description' => $this->t('Manage group members and content in the group.'),
         'default roles' => [OgRoleInterface::ADMINISTRATOR],
         'restrict access' => TRUE,
       ]),
       new GroupPermission([
+        'name' => OgAccess::DELETE_GROUP_PERMISSION,
+        'title' => $this->t('Delete group'),
+        'description' => $this->t('Delete the group entity.'),
+        'default roles' => [OgRoleInterface::ADMINISTRATOR],
+      ]),
+      new GroupPermission([
+        'name' => OgAccess::UPDATE_GROUP_PERMISSION,
+        'title' => $this->t('Edit group'),
+        'description' => $this->t('Edit the group entity.'),
+        'default roles' => [OgRoleInterface::ADMINISTRATOR],
+      ]),
+      new GroupPermission([
         'name' => 'subscribe',
-        'title' => t('Subscribe to group'),
-        'description' => t('Allow non-members to request membership to a group (approval required).'),
+        'title' => $this->t('Subscribe to group'),
+        'description' => $this->t('Allow non-members to request membership to a group (approval required).'),
         'roles' => [OgRoleInterface::ANONYMOUS],
         'default roles' => [OgRoleInterface::ANONYMOUS],
       ]),
       new GroupPermission([
         'name' => 'subscribe without approval',
-        'title' => t('Subscribe to group (no approval required)'),
-        'description' => t('Allow non-members to join a group without an approval from group administrators.'),
+        'title' => $this->t('Subscribe to group (no approval required)'),
+        'description' => $this->t('Allow non-members to join a group without an approval from group administrators.'),
         'roles' => [OgRoleInterface::ANONYMOUS],
         'default roles' => [],
       ]),
       new GroupPermission([
         'name' => 'approve and deny subscription',
-        'title' => t('Approve and deny subscription'),
-        'description' => t("Users may allow or deny another user's subscription request."),
+        'title' => $this->t('Approve and deny subscription'),
+        'description' => $this->t("Users may allow or deny another user's subscription request."),
         'default roles' => [OgRoleInterface::ADMINISTRATOR],
       ]),
       new GroupPermission([
         'name' => 'add user',
-        'title' => t('Add user'),
-        'description' => t('Users may add other users to the group without approval.'),
+        'title' => $this->t('Add user'),
+        'description' => $this->t('Users may add other users to the group without approval.'),
         'default roles' => [OgRoleInterface::ADMINISTRATOR],
       ]),
       new GroupPermission([
         'name' => 'manage members',
-        'title' => t('Manage members'),
-        'description' => t('Users may remove group members and alter member status and roles.'),
+        'title' => $this->t('Manage members'),
+        'description' => $this->t('Users may remove group members and alter member status and roles.'),
         'default roles' => [OgRoleInterface::ADMINISTRATOR],
         'restrict access' => TRUE,
       ]),
       new GroupPermission([
         'name' => 'administer permissions',
-        'title' => t('Administer permissions'),
-        'description' => t('Users may view, create, edit and delete permissions and roles within the group.'),
+        'title' => $this->t('Administer permissions'),
+        'description' => $this->t('Users may view, create, edit and delete permissions and roles within the group.'),
         'default roles' => [OgRoleInterface::ADMINISTRATOR],
         'restrict access' => TRUE,
       ]),
@@ -350,13 +372,53 @@ class OgEventSubscriber implements EventSubscriberInterface {
       'description' => 'Manage members',
       'path' => 'members',
       'requirements' => [
-        '_og_user_access_group' => 'administer group',
+        '_og_user_access_group' => OgAccess::ADMINISTER_GROUP_PERMISSION,
         // Views module must be enabled.
         '_module_dependencies' => 'views',
       ],
     ];
 
     $event->setRoutesInfo($routes_info);
+  }
+
+  /**
+   * Checks if a user has access to perform a group content entity operation.
+   *
+   * @param \Drupal\og\Event\GroupContentEntityOperationAccessEventInterface $event
+   *   The event fired when a group content entity operation is performed.
+   */
+  public function checkGroupContentEntityOperationAccess(GroupContentEntityOperationAccessEventInterface $event): void {
+    $group_content_entity = $event->getGroupContent();
+    $group_entity = $event->getGroup();
+    $user = $event->getUser();
+    $operation = $event->getOperation();
+
+    // Check if the user owns the entity which is being operated on.
+    $is_owner = $group_content_entity instanceof EntityOwnerInterface && $group_content_entity->getOwnerId() == $user->id();
+
+    // Retrieve the group content entity operation permissions.
+    $group_entity_type_id = $group_entity->getEntityTypeId();
+    $group_bundle_id = $group_entity->bundle();
+    $group_content_bundle_ids = [$group_content_entity->getEntityTypeId() => [$group_content_entity->bundle()]];
+
+    $permissions = $this->permissionManager->getDefaultEntityOperationPermissions($group_entity_type_id, $group_bundle_id, $group_content_bundle_ids);
+
+    // Filter the permissions by operation and ownership.
+    // If the user does not own the group content, only the non-owner permission
+    // is relevant (for example 'edit any article node'). However when the user
+    // _is_ the owner, then both permissions are relevant: an owner will have
+    // access if they either have the 'edit any article node' or the 'edit own
+    // article node' permission.
+    $ownerships = $is_owner ? [FALSE, TRUE] : [FALSE];
+    $permissions = array_filter($permissions, function (GroupContentOperationPermission $permission) use ($operation, $ownerships) {
+      return $permission->getOperation() === $operation && in_array($permission->getOwner(), $ownerships);
+    });
+
+    if ($permissions) {
+      foreach ($permissions as $permission) {
+        $event->mergeAccessResult($this->ogAccess->userAccess($group_entity, $permission->getName(), $user));
+      }
+    }
   }
 
 }

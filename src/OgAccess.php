@@ -1,18 +1,22 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\og;
 
 use Drupal\Core\Access\AccessResult;
+use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Cache\CacheableMetadata;
-use Drupal\Core\Cache\RefinableCacheableDependencyInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\og\Entity\OgRole;
+use Drupal\og\Event\GroupContentEntityOperationAccessEvent;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\UserInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * The service that determines if users have access to groups and group content.
@@ -20,28 +24,30 @@ use Drupal\user\UserInterface;
 class OgAccess implements OgAccessInterface {
 
   /**
-   * Administer permission string.
+   * Group level permission that grants full access to the group.
    *
-   * @var string
+   * Not to be confused with the 'administer organic groups' global permission
+   * which is intended for site builders and gives full access to _all_ groups.
    */
   const ADMINISTER_GROUP_PERMISSION = 'administer group';
 
   /**
-   * Update group permission string.
-   *
-   * @var string
+   * Group level permission that allows the user to delete the group entity.
+   */
+  const DELETE_GROUP_PERMISSION = 'delete group';
+
+  /**
+   * Group level permission that allows the user to update the group entity.
    */
   const UPDATE_GROUP_PERMISSION = 'update group';
 
   /**
-   * Static cache that contains cache permissions.
-   *
-   * @var array
-   *   Array keyed by the following keys:
-   *   - alter: The permissions after altered by implementing modules.
-   *   - pre_alter: The pre-altered permissions, as read from the config.
+   * Maps entity operations performed on groups to group level permissions.
    */
-  protected $permissionsCache = [];
+  const OPERATION_GROUP_PERMISSION_MAPPING = [
+    'delete' => self::DELETE_GROUP_PERMISSION,
+    'update' => self::UPDATE_GROUP_PERMISSION,
+  ];
 
   /**
    * The config factory.
@@ -86,14 +92,14 @@ class OgAccess implements OgAccessInterface {
   protected $membershipManager;
 
   /**
-   * The OG group audience helper.
+   * The event dispatcher.
    *
-   * @var \Drupal\og\OgGroupAudienceHelperInterface
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
-  protected $groupAudienceHelper;
+  protected $dispatcher;
 
   /**
-   * Constructs an OgManager service.
+   * Constructs the OgAccess service.
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
@@ -107,23 +113,23 @@ class OgAccess implements OgAccessInterface {
    *   The permission manager.
    * @param \Drupal\og\MembershipManagerInterface $membership_manager
    *   The group membership manager.
-   * @param \Drupal\og\OgGroupAudienceHelperInterface $group_audience_helper
-   *   The OG group audience helper.
+   * @param \Symfony\Component\EventDispatcher\EventDispatcherInterface $dispatcher
+   *   The event dispatcher.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, AccountProxyInterface $account_proxy, ModuleHandlerInterface $module_handler, GroupTypeManagerInterface $group_manager, PermissionManagerInterface $permission_manager, MembershipManagerInterface $membership_manager, OgGroupAudienceHelperInterface $group_audience_helper) {
+  public function __construct(ConfigFactoryInterface $config_factory, AccountProxyInterface $account_proxy, ModuleHandlerInterface $module_handler, GroupTypeManagerInterface $group_manager, PermissionManagerInterface $permission_manager, MembershipManagerInterface $membership_manager, EventDispatcherInterface $dispatcher) {
     $this->configFactory = $config_factory;
     $this->accountProxy = $account_proxy;
     $this->moduleHandler = $module_handler;
     $this->groupTypeManager = $group_manager;
     $this->permissionManager = $permission_manager;
     $this->membershipManager = $membership_manager;
-    $this->groupAudienceHelper = $group_audience_helper;
+    $this->dispatcher = $dispatcher;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function userAccess(EntityInterface $group, $operation, AccountInterface $user = NULL, $skip_alter = FALSE, $ignore_admin = FALSE) {
+  public function userAccess(EntityInterface $group, string $permission, ?AccountInterface $user = NULL, bool $skip_alter = FALSE): AccessResultInterface {
     $group_type_id = $group->getEntityTypeId();
     $bundle = $group->bundle();
     // As Og::isGroup depends on this config, we retrieve it here and set it as
@@ -155,20 +161,11 @@ class OgAccess implements OgAccessInterface {
       return AccessResult::allowed()->addCacheableDependency($cacheable_metadata);
     }
 
-    // Administer group permission.
-    if (!$ignore_admin) {
-      $user_access = AccessResult::allowedIfHasPermission($user, self::ADMINISTER_GROUP_PERMISSION);
-      if ($user_access->isAllowed()) {
-        return $user_access->addCacheableDependency($cacheable_metadata);
-      }
-    }
-
-    // Update group special permission. At this point, the operation should have
-    // already been handled by Og. If the operation is simply 'edit'
-    // (or 'update' for content entities), it is referring to the current group,
-    // so we have to map it to the special permission.
-    if (in_array($operation, ['update', 'edit'])) {
-      $operation = OgAccess::UPDATE_GROUP_PERMISSION;
+    // Check if the user has a global permission to administer all groups. This
+    // gives full access.
+    $user_access = AccessResult::allowedIfHasPermission($user, 'administer organic groups');
+    if ($user_access->isAllowed()) {
+      return $user_access->addCacheableDependency($cacheable_metadata);
     }
 
     if ($config->get('group_manager_full_access') && $user->isAuthenticated() && $group instanceof EntityOwnerInterface) {
@@ -178,69 +175,55 @@ class OgAccess implements OgAccessInterface {
       }
     }
 
-    $pre_alter_cache = $this->getPermissionsCache($group, $user, TRUE);
-    $post_alter_cache = $this->getPermissionsCache($group, $user, FALSE);
-
-    // To reduce the number of SQL queries, we cache the user's permissions.
-    if (!$pre_alter_cache) {
-      $permissions = [];
-      $user_is_group_admin = FALSE;
-      if ($membership = $this->membershipManager->getMembership($group, $user->id())) {
-        foreach ($membership->getRoles() as $role) {
-          // Check for the is_admin flag.
-          /** @var \Drupal\og\Entity\OgRole $role */
-          if ($role->isAdmin()) {
-            $user_is_group_admin = TRUE;
-            break;
-          }
-
-          $permissions = array_merge($permissions, $role->getPermissions());
+    $permissions = [];
+    $user_is_group_admin = FALSE;
+    if ($membership = $this->membershipManager->getMembership($group, $user->id())) {
+      foreach ($membership->getRoles() as $role) {
+        // Check for the is_admin flag.
+        if ($role->isAdmin()) {
+          $user_is_group_admin = TRUE;
+          break;
         }
-      }
-      elseif (!$this->membershipManager->isMember($group, $user->id(), [OgMembershipInterface::STATE_BLOCKED])) {
-        // User is a non-member or has a pending membership.
-        /** @var \Drupal\og\Entity\OgRole $role */
-        $role = OgRole::loadByGroupAndName($group, OgRoleInterface::ANONYMOUS);
-        $permissions = $role->getPermissions();
-      }
 
-      $permissions = array_unique($permissions);
-
-      $this->setPermissionCache($group, $user, TRUE, $permissions, $user_is_group_admin, $cacheable_metadata);
+        $permissions = array_merge($permissions, $role->getPermissions());
+      }
+    }
+    elseif (!$this->membershipManager->isMember($group, $user->id(), [OgMembershipInterface::STATE_BLOCKED])) {
+      // User is a non-member or has a pending membership.
+      /** @var \Drupal\og\Entity\OgRole $role */
+      $role = OgRole::loadByGroupAndName($group, OgRoleInterface::ANONYMOUS);
+      $permissions = $role->getPermissions();
     }
 
-    if (!$skip_alter && !in_array($operation, $post_alter_cache)) {
-      // Let modules alter the permissions. So we get the original ones, and
-      // pass them along to the implementing modules.
-      $alterable_permissions = $this->getPermissionsCache($group, $user, TRUE);
+    $permissions = array_unique($permissions);
 
+    if (!$skip_alter && !in_array($permission, $permissions)) {
+      // Let modules alter the permissions.
       $context = [
-        'operation' => $operation,
+        'permission' => $permission,
         'group' => $group,
         'user' => $user,
       ];
-      $this->moduleHandler->alter('og_user_access', $alterable_permissions['permissions'], $cacheable_metadata, $context);
-
-      $this->setPermissionCache($group, $user, FALSE, $alterable_permissions['permissions'], $alterable_permissions['is_admin'], $cacheable_metadata);
+      $this->moduleHandler->alter('og_user_access', $permissions, $cacheable_metadata, $context);
     }
 
-    $altered_permissions = $this->getPermissionsCache($group, $user, FALSE);
-
-    $user_is_group_admin = !empty($altered_permissions['is_admin']);
-
-    if (($user_is_group_admin && !$ignore_admin) || in_array($operation, $altered_permissions['permissions'])) {
+    // Check if the user is a group admin and who has access to all the group
+    // permissions.
+    // @todo It should be possible for modules to alter the permissions even if
+    //   the user is a group admin, UID 1 or has 'administer group' permission.
+    if ($user_is_group_admin || in_array($permission, $permissions)) {
       // User is a group admin, and we do not ignore this special permission
       // that grants access to all the group permissions.
-      return AccessResult::allowed()->addCacheableDependency($altered_permissions['cacheable_metadata']);
+      return AccessResult::allowed()->addCacheableDependency($cacheable_metadata);
     }
 
-    return AccessResult::forbidden()->addCacheableDependency($cacheable_metadata);
+    return AccessResult::neutral()->addCacheableDependency($cacheable_metadata);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function userAccessEntity($operation, EntityInterface $entity, AccountInterface $user = NULL) {
+  public function userAccessEntity(string $permission, EntityInterface $entity, ?AccountInterface $user = NULL): AccessResultInterface {
     $result = AccessResult::neutral();
 
     $entity_type = $entity->getEntityType();
@@ -248,187 +231,106 @@ class OgAccess implements OgAccessInterface {
     $bundle = $entity->bundle();
 
     if ($this->groupTypeManager->isGroup($entity_type_id, $bundle)) {
-      $user_access = $this->userAccess($entity, $operation, $user);
-      if ($user_access->isAllowed()) {
-        return $user_access;
-      }
-      else {
-        // An entity can be a group and group content in the same time. The
-        // group didn't allow access, but the user still might have access to
-        // the permission in group content context. So instead of retuning a
-        // deny here, we set the result, that might change if an access is
-        // found.
-        $result = AccessResult::forbidden()->inheritCacheability($user_access);
+      // An entity can be a group and group content in the same time. If the
+      // group returns a neutral result the user still might have access to
+      // the permission in group content context. So if we get a neutral result
+      // we will continue with the group content access check below.
+      $result = $this->userAccess($entity, $permission, $user);
+      if (!$result->isNeutral()) {
+        return $result;
       }
     }
 
-    $is_group_content = $this->groupAudienceHelper->hasGroupAudienceField($entity_type_id, $bundle);
-    if ($is_group_content) {
-      $cache_tags = $entity_type->getListCacheTags();
+    if ($this->groupTypeManager->isGroupContent($entity_type_id, $bundle)) {
+      $result->addCacheTags($entity_type->getListCacheTags());
 
       // The entity might be a user or a non-user entity.
       $groups = $entity instanceof UserInterface ? $this->membershipManager->getUserGroups($entity->id()) : $this->membershipManager->getGroups($entity);
 
       if ($groups) {
-        $forbidden = AccessResult::forbidden()->addCacheTags($cache_tags);
         foreach ($groups as $entity_groups) {
           foreach ($entity_groups as $group) {
-            // Check if the operation matches a group content entity operation
-            // such as 'create article content'.
-            $operation_access = $this->userAccessGroupContentEntityOperation($operation, $group, $entity, $user);
-
-            if ($operation_access->isAllowed()) {
-              return $operation_access->addCacheTags($cache_tags);
-            }
-
-            // Check if the operation matches a group level operation such as
-            // 'subscribe without approval'.
-            $user_access = $this->userAccess($group, $operation, $user);
-            if ($user_access->isAllowed()) {
-              return $user_access->addCacheTags($cache_tags);
-            }
-
-            $forbidden->inheritCacheability($user_access);
+            $result = $result->orIf($this->userAccess($group, $permission, $user));
           }
         }
-        return $forbidden;
       }
-
-      $result->addCacheTags($cache_tags);
     }
 
-    // Either the user didn't have permission, or the entity might be an
-    // orphaned group content.
     return $result;
-  }
-
-  /**
-   * Checks access for entity operations on group content entities.
-   *
-   * This checks if the user has permission to perform the requested operation
-   * on the given group content entity according to the user's membership status
-   * in the given group. There is no formal support for access control on entity
-   * operations in core, so the mapping of permissions to operations is provided
-   * by PermissionManager::getEntityOperationPermissions().
-   *
-   * @param string $operation
-   *   The entity operation.
-   * @param \Drupal\Core\Entity\EntityInterface $group_entity
-   *   The group entity, to retrieve the permissions from.
-   * @param \Drupal\Core\Entity\EntityInterface $group_content_entity
-   *   The group content entity for which access to the entity operation is
-   *   requested.
-   * @param \Drupal\Core\Session\AccountInterface $user
-   *   Optional user for which to check access. If omitted, the currently logged
-   *   in user will be used.
-   *
-   * @return \Drupal\Core\Access\AccessResult
-   *   The access result object.
-   *
-   * @see \Drupal\og\PermissionManager::getEntityOperationPermissions()
-   */
-  public function userAccessGroupContentEntityOperation($operation, EntityInterface $group_entity, EntityInterface $group_content_entity, AccountInterface $user = NULL) {
-    // Default to the current user.
-    $user = $user ?: $this->accountProxy->getAccount();
-
-    // Check if the user owns the entity which is being operated on.
-    $is_owner = $group_content_entity instanceof EntityOwnerInterface && $group_content_entity->getOwnerId() == $user->id();
-
-    // Retrieve the group content entity operation permissions.
-    $group_entity_type_id = $group_entity->getEntityTypeId();
-    $group_bundle_id = $group_entity->bundle();
-    $group_content_bundle_ids = [$group_content_entity->getEntityTypeId() => [$group_content_entity->bundle()]];
-
-    $permissions = $this->permissionManager->getDefaultEntityOperationPermissions($group_entity_type_id, $group_bundle_id, $group_content_bundle_ids);
-
-    // Filter the permissions by operation and ownership.
-    // If the user does not own the group content, only the non-owner permission
-    // is relevant (for example 'edit any article node'). However when the user
-    // _is_ the owner, then both permissions are relevant: an owner will have
-    // access if they either have the 'edit any article node' or the 'edit own
-    // article node' permission.
-    $ownerships = $is_owner ? [FALSE, TRUE] : [FALSE];
-    $permissions = array_filter($permissions, function (GroupContentOperationPermission $permission) use ($operation, $ownerships) {
-      return $permission->getOperation() === $operation && in_array($permission->getOwner(), $ownerships);
-    });
-
-    if ($permissions) {
-      foreach ($permissions as $permission) {
-        $user_access = $this->userAccess($group_entity, $permission->getName(), $user);
-        if ($user_access->isAllowed()) {
-          return $user_access;
-        }
-      }
-    }
-
-    // @todo This doesn't really vary by user but by the user's roles inside of
-    //   the group. We should create a cache context for OgRole entities.
-    // @see https://github.com/amitaibu/og/issues/219
-    $cacheable_metadata = new CacheableMetadata();
-    $cacheable_metadata->addCacheableDependency($group_content_entity);
-    if ($user->id() == $this->accountProxy->id()) {
-      $cacheable_metadata->addCacheContexts(['user']);
-    }
-
-    return AccessResult::neutral()->addCacheableDependency($cacheable_metadata);
-  }
-
-  /**
-   * Set the permissions in the static cache.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $group
-   *   The entity object.
-   * @param \Drupal\Core\Session\AccountInterface $user
-   *   The user object.
-   * @param bool $pre_alter
-   *   Determines if the type of permissions is pre-alter or post-alter.
-   * @param array $permissions
-   *   Array of permissions to set.
-   * @param bool $is_admin
-   *   Whether or not the user is a group administrator.
-   * @param \Drupal\Core\Cache\RefinableCacheableDependencyInterface $cacheable_metadata
-   *   A cacheable metadata object.
-   */
-  protected function setPermissionCache(EntityInterface $group, AccountInterface $user, $pre_alter, array $permissions, $is_admin, RefinableCacheableDependencyInterface $cacheable_metadata) {
-    $entity_type_id = $group->getEntityTypeId();
-    $group_id = $group->id();
-    $user_id = $user->id();
-    $type = $pre_alter ? 'pre_alter' : 'post_alter';
-
-    $this->permissionsCache[$entity_type_id][$group_id][$user_id][$type] = [
-      'is_admin' => $is_admin,
-      'permissions' => $permissions,
-      'cacheable_metadata' => $cacheable_metadata,
-    ];
-  }
-
-  /**
-   * Get the permissions from the static cache.
-   *
-   * @param \Drupal\Core\Entity\EntityInterface $group
-   *   The entity object.
-   * @param \Drupal\Core\Session\AccountInterface $user
-   *   The user object.
-   * @param bool $pre_alter
-   *   Determines if the type of permissions is pre-alter or post-alter.
-   *
-   * @return array
-   *   Array of permissions if cached, or an empty array.
-   */
-  protected function getPermissionsCache(EntityInterface $group, AccountInterface $user, $pre_alter) {
-    $entity_type_id = $group->getEntityTypeId();
-    $group_id = $group->id();
-    $user_id = $user->id();
-    $type = $pre_alter ? 'pre_alter' : 'post_alter';
-
-    return isset($this->permissionsCache[$entity_type_id][$group_id][$user_id][$type]) ? $this->permissionsCache[$entity_type_id][$group_id][$user_id][$type] : [];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function reset() {
-    $this->permissionsCache = [];
+  public function userAccessEntityOperation(string $operation, EntityInterface $entity, ?AccountInterface $user = NULL): AccessResultInterface {
+    $result = AccessResult::neutral();
+
+    $entity_type = $entity->getEntityType();
+    $entity_type_id = $entity_type->id();
+    $bundle = $entity->bundle();
+
+    if ($this->groupTypeManager->isGroup($entity_type_id, $bundle)) {
+      // We are performing an entity operation on a group entity. Map the
+      // operation to the corresponding group level permission.
+      if (array_key_exists($operation, self::OPERATION_GROUP_PERMISSION_MAPPING)) {
+        $permission = self::OPERATION_GROUP_PERMISSION_MAPPING[$operation];
+
+        // An entity can be a group and group content in the same time. If the
+        // group returns a neutral result the user still might have access to
+        // the permission in group content context. So if we get a neutral
+        // result we will continue with the group content access check below.
+        $result = $this->userAccess($entity, $permission, $user);
+        if (!$result->isNeutral()) {
+          return $result;
+        }
+      }
+    }
+
+    if ($this->groupTypeManager->isGroupContent($entity_type_id, $bundle)) {
+      $result->addCacheTags($entity_type->getListCacheTags());
+
+      // The entity might be a user or a non-user entity.
+      $groups = $entity instanceof UserInterface ? $this->membershipManager->getUserGroups($entity->id()) : $this->membershipManager->getGroups($entity);
+
+      if ($groups) {
+        foreach ($groups as $entity_groups) {
+          foreach ($entity_groups as $group) {
+            $result = $result->orIf($this->userAccessGroupContentEntityOperation($operation, $group, $entity, $user));
+          }
+        }
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function userAccessGroupContentEntityOperation(string $operation, EntityInterface $group_entity, EntityInterface $group_content_entity, ?AccountInterface $user = NULL): AccessResultInterface {
+    // Default to the current user.
+    $user = $user ?: $this->accountProxy->getAccount();
+
+    $event = new GroupContentEntityOperationAccessEvent($operation, $group_entity, $group_content_entity, $user);
+
+    // @todo This doesn't really vary by user but by the user's roles inside of
+    //   the group. We should create a cache context for OgRole entities.
+    // @see https://github.com/amitaibu/og/issues/219
+    $event->addCacheableDependency($group_content_entity);
+    if ($user->id() == $this->accountProxy->id()) {
+      $event->addCacheContexts(['user']);
+    }
+
+    $this->dispatcher->dispatch(GroupContentEntityOperationAccessEvent::EVENT_NAME, $event);
+
+    return $event->getAccessResult();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function reset(): void {
+    trigger_error('OgAccessInterface::reset() is deprecated in og:8.1.0-alpha6 and is removed from og:8.1.0-beta1. The static cache has been removed and this method no longer serves any purpose. Any calls to this method can safely be removed. See https://github.com/Gizra/og/issues/654', E_USER_DEPRECATED);
   }
 
 }

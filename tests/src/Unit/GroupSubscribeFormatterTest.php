@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types = 1);
+
 namespace Drupal\Tests\og\Unit;
 
 use Drupal\Core\Access\AccessResultInterface;
@@ -12,12 +14,12 @@ use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Tests\UnitTestCase;
 use Drupal\og\GroupTypeManagerInterface;
 use Drupal\og\MembershipManagerInterface;
 use Drupal\og\OgAccessInterface;
 use Drupal\og\OgMembershipInterface;
 use Drupal\og\Plugin\Field\FieldFormatter\GroupSubscribeFormatter;
-use Drupal\Tests\UnitTestCase;
 use Drupal\user\EntityOwnerInterface;
 
 /**
@@ -150,7 +152,7 @@ class GroupSubscribeFormatterTest extends UnitTestCase {
   /**
    * {@inheritdoc}
    */
-  public function setUp() {
+  protected function setUp(): void {
     parent::setUp();
 
     $this->accessResult = $this->prophesize(AccessResultInterface::class);
@@ -308,7 +310,7 @@ class GroupSubscribeFormatterTest extends UnitTestCase {
     $this->accessResult->isAllowed()->willReturn(FALSE);
 
     $elements = $this->getElements();
-    $this->assertTrue(strpos($elements[0]['#value'], 'This is a closed group.') === 0);
+    $this->assertStringStartsWith('This is a closed group.', $elements[0]['#value']->render());
   }
 
   /**
@@ -339,7 +341,10 @@ class GroupSubscribeFormatterTest extends UnitTestCase {
 
     $this
       ->membershipManager
-      ->isMember($this->group->reveal(), $this->user->reveal()->id(), [OgMembershipInterface::STATE_ACTIVE, OgMembershipInterface::STATE_PENDING])
+      ->isMember($this->group->reveal(), $this->user->reveal()->id(), [
+        OgMembershipInterface::STATE_ACTIVE,
+        OgMembershipInterface::STATE_PENDING,
+      ])
       ->willReturn(TRUE);
 
     $elements = $this->getElements();
@@ -362,7 +367,8 @@ class GroupSubscribeFormatterTest extends UnitTestCase {
       '',
       [],
       $this->accountProxy->reveal(),
-      $this->ogAccess->reveal()
+      $this->ogAccess->reveal(),
+      $this->entityTypeManager->reveal()
     );
     return $formatter->viewElements($this->fieldItemList->reveal(), $this->randomMachineName());
   }
